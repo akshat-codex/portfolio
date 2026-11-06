@@ -155,11 +155,11 @@ const Hero = () => {
           <motion.div variants={up} className="flex flex-wrap items-center gap-3 mb-7">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md glass-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="label-muted" style={{ color: '#94A3B8' }}>B.Tech Graduate · June 2026</span>
+              <span className="label-muted" style={{ color: '#94A3B8' }}>Backend Developer @ Gravity</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md glass-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              <span className="label-muted" style={{ color: '#94A3B8' }}>Open to Full-Time Roles</span>
+              <span className="label-muted" style={{ color: '#94A3B8' }}>Open to Collaborations</span>
             </div>
           </motion.div>
 
@@ -182,7 +182,7 @@ const Hero = () => {
           <motion.div variants={up} className="mb-7 space-y-1.5">
             {[
               { num: '01', text: 'Python / Backend Developer @ Gravity Engineering Services', accent: false },
-              { num: '02', text: 'B.Tech Computer Science · BBDU · June 2026', accent: false },
+              { num: '02', text: 'B.Tech Computer Science · BBDU · Class of 2026', accent: false },
               { num: '03', text: 'AWS · React · Node.js · Java · Machine Learning · REST APIs', accent: true },
             ].map((line) => (
               <div key={line.num} className="flex items-start gap-3">
@@ -218,12 +218,12 @@ const Hero = () => {
             <Link to="projects" smooth duration={800}>
               <button className="btn-solid">View Projects <FaArrowRight className="text-xs" /></button>
             </Link>
-            <button className="btn-ghost">
+            <a href="/Akshat_Srivastava_CV.pdf" download="Akshat_Srivastava_CV.pdf" className="btn-ghost">
               <HiDownload className="text-sm" /> Download CV
-            </button>
+            </a>
             <div className="flex items-center gap-2 ml-1">
               {[
-                { icon: <FaGithub />, href: 'https://github.com/devakshatc', label: 'GitHub' },
+                { icon: <FaGithub />, href: 'https://github.com/akshat-codex', label: 'GitHub' },
                 { icon: <FaLinkedin />, href: 'https://linkedin.com/in/akshhatsrivastava', label: 'LinkedIn' },
                 { icon: <FaEnvelope />, href: 'mailto:akshsvt123@gmail.com', label: 'Email' },
               ].map((s) => (

@@ -3,11 +3,14 @@ import { motion, useInView } from 'framer-motion'
 import { FaEnvelope, FaPhone, FaLinkedin, FaGithub, FaArrowRight } from 'react-icons/fa'
 import { FaLocationDot } from 'react-icons/fa6'
 
+// Web3Forms public access key — safe to ship in client code; it only allows sending to the owner's inbox.
+const WEB3FORMS_ACCESS_KEY = 'd6f81333-9a41-4a2b-a847-b2195c6d9c05'
+
 const contactLinks = [
   { icon: <FaEnvelope />, label: 'Email', value: 'akshsvt123@gmail.com', href: 'mailto:akshsvt123@gmail.com', color: '#7B2FFF' },
   { icon: <FaPhone />, label: 'Phone', value: '+91-9936382927', href: 'tel:+919936382927', color: '#00D4FF' },
   { icon: <FaLinkedin />, label: 'LinkedIn', value: 'Connect with me', href: 'https://linkedin.com/in/akshhatsrivastava', color: '#0077B5' },
-  { icon: <FaGithub />, label: 'GitHub', value: 'View my code', href: 'https://github.com/devakshatc', color: '#C084FC' },
+  { icon: <FaGithub />, label: 'GitHub', value: 'View my code', href: 'https://github.com/akshat-codex', color: '#C084FC' },
 ]
 
 const Contact = () => {
@@ -23,13 +26,20 @@ const Contact = () => {
     e.preventDefault()
     setSending(true)
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/contact`, {
+      const res = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, subject: 'Portfolio Contact' }),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          subject: `[Portfolio] New message from ${form.name}`,
+          from_name: 'Portfolio Contact Form',
+          ...form,
+        }),
       })
-      setStatus(res.ok ? 'success' : 'error')
-      if (res.ok) setForm({ name: '', email: '', message: '' })
+      const data = await res.json().catch(() => ({}))
+      const ok = res.ok && data.success
+      setStatus(ok ? 'success' : 'error')
+      if (ok) setForm({ name: '', email: '', message: '' })
     } catch {
       setStatus('error')
     } finally {
@@ -64,7 +74,7 @@ const Contact = () => {
             <span className="gradient-text">Let's talk.</span>
           </h2>
           <p className="text-gray-500 text-base max-w-md mt-4 mx-auto lg:mx-0">
-            Open to full-time roles, collaborations, and interesting engineering challenges.
+            Open to collaborations, side projects, and interesting engineering challenges.
           </p>
         </motion.div>
 
@@ -119,11 +129,11 @@ const Contact = () => {
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="label-text">Open to Work</span>
+                <span className="label-text">Currently</span>
               </div>
-              <p className="text-white text-sm font-medium">Seeking Full-Time Roles</p>
+              <p className="text-white text-sm font-medium">Python / Backend Developer @ Gravity Engineering Services</p>
               <p className="text-gray-500 text-xs mt-0.5">
-                Software Engineer · Backend Developer · Cloud Engineer · Graduating June 2026
+                Backend · Cloud · AI — always happy to talk shop
               </p>
             </div>
           </motion.div>

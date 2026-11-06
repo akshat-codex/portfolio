@@ -2,24 +2,45 @@ import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 
 const allSkills = [
-  'Python', 'Java', 'JavaScript', 'SQL', 'React.js', 'Node.js', 'Express.js',
-  'AWS Lambda', 'EC2', 'S3', 'DynamoDB', 'API Gateway', 'CloudWatch', 'IAM',
-  'MySQL', 'MongoDB', 'Machine Learning', 'NLP', 'Scikit-Learn', 'TF-IDF',
-  'Flask', 'REST APIs', 'Git', 'GitHub', 'Postman', 'VS Code', 'JDBC', 'OOP',
+  'Python', 'Django', 'Django REST Framework', 'FastAPI', 'Celery', 'Redis', 'PostgreSQL',
+  'Docker', 'Linux', 'REST APIs', 'Webhooks', 'AWS Lambda', 'EC2', 'S3', 'DynamoDB',
+  'API Gateway', 'CloudWatch', 'IAM', 'Java', 'JavaScript', 'SQL', 'React.js', 'Next.js',
+  'Node.js', 'Express.js', 'MySQL', 'MongoDB', 'Machine Learning', 'NLP', 'Conversational AI',
+  'Scikit-Learn', 'Flask', 'Git', 'Postman',
 ]
 
-const row1 = allSkills.slice(0, 14)
-const row2 = allSkills.slice(14)
+const row1 = allSkills.slice(0, 17)
+const row2 = allSkills.slice(17)
 
 const skillGroups = [
   {
     category: 'Languages',
     color: '#7B2FFF',
     items: [
-      { name: 'Python', level: 88 },
-      { name: 'Java', level: 82 },
-      { name: 'JavaScript', level: 80 },
-      { name: 'SQL', level: 76 },
+      { name: 'Python', level: 90 },
+      { name: 'SQL', level: 80 },
+      { name: 'Java', level: 80 },
+      { name: 'JavaScript', level: 78 },
+    ],
+  },
+  {
+    category: 'Backend',
+    color: '#22C55E',
+    items: [
+      { name: 'Django / DRF', level: 86 },
+      { name: 'FastAPI', level: 82 },
+      { name: 'PostgreSQL', level: 82 },
+      { name: 'REST APIs', level: 88 },
+    ],
+  },
+  {
+    category: 'Async & Infra',
+    color: '#EC4899',
+    items: [
+      { name: 'Celery', level: 84 },
+      { name: 'Redis', level: 80 },
+      { name: 'Docker', level: 74 },
+      { name: 'Linux', level: 76 },
     ],
   },
   {
@@ -135,7 +156,7 @@ const Skills = () => {
 
       {/* Skill bars grid */}
       <div className="px-6 lg:px-16">
-        <div className="max-w-7xl mx-auto grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="max-w-7xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {skillGroups.map((group, gi) => (
             <motion.div
               key={group.category}

@@ -4,7 +4,56 @@ import { FaArrowLeft, FaArrowRight, FaGithub, FaExternalLinkAlt } from 'react-ic
 
 const projects = [
   {
-    num: '01',
+    title: 'Newton-AI — LinkedIn SDR Automation',
+    category: 'AI Automation · Work',
+    period: '2026 — Present',
+    color: '#F59E0B',
+    accentRgb: '245,158,11',
+    icon: '💬',
+    summary: 'FastAPI/Celery-based AI system that engages LinkedIn leads in automated SDR conversations, qualifies prospects and hands warm leads to sales — integrated with the Polluxa SalesTech platform.',
+    bullets: [
+      'Interest detection, intent classification and lead qualification',
+      'Lifecycle states: interested, not interested, job seeker, ghosted, handed-off',
+      'Human handoff workflows for leads needing sales intervention',
+      'Reliable async FastAPI + Celery processing and inbound webhooks',
+    ],
+    tech: ['Python', 'FastAPI', 'Celery', 'Redis', 'Conversational AI', 'Webhooks'],
+    link: 'https://grateful-joy-0dad9947f5.media.strapiapp.com/AI_Powered_Linked_In_Outreach_Automation_1271cf68cd.mp4',
+  },
+  {
+    title: 'Polluxa SalesTech — Production SaaS',
+    category: 'Backend · Work',
+    period: '2026 — Present',
+    color: '#EC4899',
+    accentRgb: '236,72,153',
+    icon: '📬',
+    summary: 'Backend APIs and business logic for a production sales-outreach SaaS — email, outreach, leads, pipeline, senders, inbox, warm-up and deliverability — built on Django REST Framework.',
+    bullets: [
+      'Celery + Redis async workflows for automated email operations',
+      'Email warm-up and deliverability analysis (before/after comparison)',
+      'Debugged production flows across API → DB → Celery → Redis → SMTP/IMAP',
+      'PostgreSQL data modelling and investigation',
+    ],
+    tech: ['Python', 'Django', 'DRF', 'PostgreSQL', 'Celery', 'Redis', 'Docker'],
+  },
+  {
+    title: 'AI Lead Generation & Enrichment',
+    category: 'AI Automation',
+    period: '2026',
+    color: '#22C55E',
+    accentRgb: '34,197,94',
+    icon: '🎯',
+    summary: 'Automated B2B lead discovery pipeline: finds target companies and decision-makers by industry, geography, size and title, then enriches and verifies contacts at scale.',
+    bullets: [
+      'Company research and decision-maker enrichment',
+      'Large-scale dataset processing with company/person relationships',
+      'Email verification via syntax, domain/MX checks and external services',
+      'Redis caching to avoid repeated verification calls',
+    ],
+    tech: ['Python', 'Redis', 'Lead Enrichment', 'Data Validation', 'Automation'],
+    github: 'https://github.com/akshat-codex/ai-lead-agent',
+  },
+  {
     title: 'AI-Powered Fake Review Detection',
     category: 'AI / ML',
     period: 'Jun 2026',
@@ -21,7 +70,6 @@ const projects = [
     tech: ['Python', 'Flask', 'Scikit-Learn', 'NLP', 'TF-IDF', 'ML', 'REST API'],
   },
   {
-    num: '02',
     title: 'Real-Time Visitor Analytics',
     category: 'AWS Serverless',
     period: 'Feb 2026',
@@ -38,7 +86,6 @@ const projects = [
     tech: ['AWS Lambda', 'DynamoDB', 'API Gateway', 'CloudWatch', 'IAM', 'Serverless'],
   },
   {
-    num: '03',
     title: 'NewsXStudy — Full-Stack Platform',
     category: 'Full Stack',
     period: 'Nov 2025',
@@ -55,7 +102,6 @@ const projects = [
     tech: ['React.js', 'Node.js', 'Express.js', 'MongoDB', 'News API', 'JWT'],
   },
   {
-    num: '04',
     title: 'Smart Employee Management',
     category: 'Backend · Java',
     period: 'Apr 2026',
@@ -71,7 +117,7 @@ const projects = [
     ],
     tech: ['Java', 'MySQL', 'JDBC', 'OOP', 'SQL'],
   },
-]
+].map((p, i) => ({ ...p, num: String(i + 1).padStart(2, '0') }))
 
 const CardInner = ({ project, isActive, mousePos, onMouseMove, onMouseLeave }) => {
   const shine = isActive
@@ -100,20 +146,34 @@ const CardInner = ({ project, isActive, mousePos, onMouseMove, onMouseLeave }) =
           </div>
         </div>
         <div className="flex gap-2">
-          <button
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all duration-200 glass-sm"
-            style={{ color: '#475569' }}
-            onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0'; e.stopPropagation() }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#475569' }}
-          >
-            <FaGithub />
-          </button>
-          <button
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all duration-200"
-            style={{ background: `${project.color}18`, border: `1px solid ${project.color}30`, color: project.color }}
-          >
-            <FaExternalLinkAlt />
-          </button>
+          {project.github && (
+            <a
+              href={project.github}
+              target="_blank"
+              rel="noreferrer"
+              title="Source code"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all duration-200 glass-sm"
+              style={{ color: '#475569' }}
+              onClick={e => e.stopPropagation()}
+              onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0' }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#475569' }}
+            >
+              <FaGithub />
+            </a>
+          )}
+          {project.link && (
+            <a
+              href={project.link}
+              target="_blank"
+              rel="noreferrer"
+              title="Demo"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all duration-200"
+              style={{ background: `${project.color}18`, border: `1px solid ${project.color}30`, color: project.color }}
+              onClick={e => e.stopPropagation()}
+            >
+              <FaExternalLinkAlt />
+            </a>
+          )}
         </div>
       </div>
 
