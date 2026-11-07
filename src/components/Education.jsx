@@ -1,150 +1,142 @@
-import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import { animate, motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { Reveal, Rule, SectionHead } from './ui'
+import { useCalm, EASE_QUART } from './fx'
 
-const tiltEnter = (e) => { e.currentTarget.style.transition = 'transform 0.12s ease' }
-const tiltMove = (e) => {
-  const el = e.currentTarget
-  const r = el.getBoundingClientRect()
-  const x = (e.clientX - r.left) / r.width - 0.5
-  const y = (e.clientY - r.top) / r.height - 0.5
-  el.style.transform = `perspective(900px) rotateX(${-y * 8}deg) rotateY(${x * 8}deg) translateZ(6px)`
-}
-const tiltLeave = (e) => {
-  e.currentTarget.style.transition = 'transform 0.55s ease'
-  e.currentTarget.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0px)'
+// Measured, ruled facts. Every value is from the CV.
+const facts = [
+  { label: 'Period', value: <time className="num">2022–2026</time> },
+  { label: 'Division', value: 'First Division with Honours' },
+  { label: 'Rank', value: <><span className="num">25th</span> rank in 1st year, university-wide</> },
+  { label: 'Scholarship', value: 'Awarded for academic excellence' },
+  { label: 'Core modules', value: 'DSA, OOP, DBMS, OS, Computer Networks' },
+]
+
+const CGPA = 8.97
+const SCALE = 10
+
+/** Counts 0.00 → value once, the first time it is on screen. Static under reduced motion. */
+function CountUp({ value, decimals = 2 }) {
+  const ref = useRef(null)
+  const reduce = useReducedMotion()
+  const inView = useInView(ref, { once: true, margin: '0px 0px -15% 0px' })
+
+  useEffect(() => {
+    if (!inView || reduce) return
+    const controls = animate(0, value, {
+      duration: 1.8,
+      ease: EASE_QUART,
+      onUpdate: (v) => {
+        if (ref.current) ref.current.textContent = v.toFixed(decimals)
+      },
+    })
+    return () => controls.stop()
+  }, [inView, reduce, value, decimals])
+
+  return (
+    <span ref={ref} aria-hidden="true">
+      {reduce ? value.toFixed(decimals) : (0).toFixed(decimals)}
+    </span>
+  )
 }
 
 const Education = () => {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
-
-  const fadeUp = (delay) => ({
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay } },
-  })
+  const reduce = useReducedMotion()
+  const calm = useCalm()
+  const numRef = useRef(null)
+  const { scrollYProgress } = useScroll({ target: numRef, offset: ['start end', 'end start'] })
+  const drift = useTransform(scrollYProgress, [0, 1], ['6%', '-6%'])
 
   return (
-    <section id="education" className="relative py-28 px-6 lg:px-16 overflow-hidden">
-      <span className="section-ghost-num" style={{ top: '-20px', right: '0' }}>04</span>
+    <section id="education" className="shell py-24 lg:py-32">
+      <SectionHead index="05" title="Education" />
 
-      <div className="max-w-7xl mx-auto" ref={ref}>
-        <motion.div
-          variants={fadeUp(0)}
-          initial="hidden"
-          animate={inView ? 'visible' : 'hidden'}
-          className="mb-16"
-        >
-          <p className="label-text mb-4">Background</p>
-          <h2 className="heading-text text-white">
-            Education &amp; <span className="gradient-text">Experience</span>
-          </h2>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Education card */}
-          <motion.div
-            variants={fadeUp(0.1)}
-            initial="hidden"
-            animate={inView ? 'visible' : 'hidden'}
-            className="glass glass-hover p-8 relative overflow-hidden"
-            onMouseEnter={tiltEnter}
-            onMouseMove={tiltMove}
-            onMouseLeave={tiltLeave}
+      {/* Degree */}
+      <div className="grid-12 mt-12 lg:mt-20">
+        <div className="col-span-4 lg:col-span-8 lg:col-start-2">
+          <Reveal
+            as="h3"
+            className="text-[clamp(1.5rem,4.5vw,2.75rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.01em] [font-stretch:112%]"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 opacity-5 rounded-full"
-              style={{ background: '#7B2FFF', filter: 'blur(30px)', transform: 'translate(30%, -30%)' }} />
-
-            <div className="flex items-start justify-between mb-6">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-                style={{ background: 'rgba(123,47,255,0.12)', border: '1px solid rgba(123,47,255,0.2)' }}
-              >
-                🎓
-              </div>
-              <span className="label-text bg-white/[0.04] px-3 py-1 rounded-full">2022 — 2026</span>
-            </div>
-
-            <h3 className="font-semibold text-white text-lg mb-1" style={{ fontFamily: 'Syne, sans-serif' }}>
-              B.Tech Computer Science & Engineering
-            </h3>
-            <p className="text-purple-400 text-sm font-medium mb-1">Babu Banarasi Das University</p>
-            <p className="label-text mb-6">Lucknow, India</p>
-
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {[
-                { value: '9+', label: 'CGPA' },
-                { value: '25th', label: 'Rank' },
-                { value: '🏅', label: 'Scholar' },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="text-center py-3 rounded-xl"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
-                >
-                  <p className="font-black text-white" style={{ fontFamily: 'Syne, sans-serif' }}>{s.value}</p>
-                  <p className="label-text mt-0.5">{s.label}</p>
-                </div>
-              ))}
-            </div>
-
-            <ul className="space-y-2">
-              {[
-                'Secured 25th Rank in 1st Year university-wide',
-                'Awarded scholarship for academic excellence',
-                'DSA, OOP, DBMS, OS, Computer Networks core modules',
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-gray-500">
-                  <span className="text-purple-500 mt-0.5">▸</span> {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Work experience card */}
-          <motion.div
-            variants={fadeUp(0.2)}
-            initial="hidden"
-            animate={inView ? 'visible' : 'hidden'}
-            className="glass glass-hover p-8 relative overflow-hidden"
-            onMouseEnter={tiltEnter}
-            onMouseMove={tiltMove}
-            onMouseLeave={tiltLeave}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 opacity-5 rounded-full"
-              style={{ background: '#FF6B35', filter: 'blur(30px)', transform: 'translate(30%, -30%)' }} />
-
-            <div className="flex items-start justify-between mb-6">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-                style={{ background: 'rgba(255,107,53,0.12)', border: '1px solid rgba(255,107,53,0.2)' }}
-              >
-                💼
-              </div>
-              <div className="flex items-center gap-2 label-text bg-white/[0.04] px-3 py-1 rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Present
-              </div>
-            </div>
-
-            <h3 className="font-semibold text-white text-lg mb-1" style={{ fontFamily: 'Syne, sans-serif' }}>
-              Python / Backend Developer
-            </h3>
-            <p className="text-orange-400 text-sm font-medium mb-1">Gravity Engineering Services</p>
-            <p className="label-text mb-6">Full-Time · Lucknow, India</p>
-
-            <p className="text-gray-500 text-sm leading-relaxed mb-6">
-              Building and maintaining scalable backend systems, REST APIs, and cloud-integrated services using Python.
-              Contributing to real-world engineering solutions and microservice architecture.
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              {['Python', 'REST APIs', 'Backend Systems', 'Cloud Integration', 'Database Design'].map((t) => (
-                <span key={t} className="tag text-xs">{t}</span>
-              ))}
-            </div>
-          </motion.div>
+            B.Tech Computer Science &amp; Engineering
+          </Reveal>
+          <Reveal as="p" delay={0.08} className="mt-5 text-lg text-paper">
+            Babu Banarasi Das University
+          </Reveal>
+          <Reveal as="p" delay={0.12} className="label mt-1">
+            Lucknow, India
+          </Reveal>
         </div>
       </div>
+
+      {/* CGPA: the one enormous measurement */}
+      <div ref={numRef} className="grid-12 mt-14 items-end gap-y-6 lg:mt-20">
+        <div className="col-span-4 lg:col-span-8 lg:col-start-2">
+          <p className="label">CGPA</p>
+          <motion.p style={calm ? undefined : { y: drift }} className="mt-3">
+            <data
+              value={String(CGPA)}
+              className="display num block whitespace-nowrap text-[clamp(6rem,31vw,18rem)] leading-[0.8]"
+            >
+              <span className="sr-only">
+                {CGPA} out of {SCALE}
+              </span>
+              <CountUp value={CGPA} />
+            </data>
+          </motion.p>
+        </div>
+        <div className="col-span-4 lg:col-span-3 lg:pb-3">
+          <p className="flex items-baseline justify-between">
+            <span className="label">Scale</span>
+            <span className="num text-grey">/ {SCALE}</span>
+          </p>
+          {/* Scale bar: 0–10 ticks, signal fill to 8.97 */}
+          <div aria-hidden="true" className="relative mt-3 h-6">
+            <span className="absolute inset-x-0 bottom-0 h-px bg-rule" />
+            {Array.from({ length: SCALE + 1 }, (_, t) => (
+              <span
+                key={t}
+                className={`absolute bottom-0 w-px bg-grey ${t % 5 === 0 ? 'h-3' : 'h-1.5'}`}
+                style={{ left: `calc(${(t / SCALE) * 100}% - ${t === SCALE ? 1 : 0}px)` }}
+              />
+            ))}
+            <motion.span
+              className="absolute bottom-0 left-0 h-[3px] w-full origin-left bg-signal"
+              initial={reduce ? false : { scaleX: 0 }}
+              whileInView={{ scaleX: CGPA / SCALE }}
+              style={reduce ? { transform: `scaleX(${CGPA / SCALE})` } : undefined}
+              viewport={{ once: true, margin: '0px 0px -15% 0px' }}
+              transition={{ duration: 1.8, ease: EASE_QUART }}
+            />
+          </div>
+          <p className="label num mt-2 flex justify-between">
+            <span>0</span>
+            <span>5</span>
+            <span>10</span>
+          </p>
+        </div>
+      </div>
+
+      <dl className="grid-12 mt-16 lg:mt-24">
+        {facts.map((f, i) => (
+          <div key={f.label} className="col-span-4 lg:col-span-11 lg:col-start-2">
+            <Rule delay={i * 0.07} />
+            <motion.div
+              className="grid grid-cols-4 gap-x-[var(--gap)] py-4 lg:grid-cols-11"
+              initial={reduce ? false : { x: -40, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+              transition={{ duration: 0.8, delay: 0.1 + i * 0.07, ease: EASE_QUART }}
+            >
+              <dt className="label col-span-4 lg:col-span-3 lg:pt-1">{f.label}</dt>
+              <dd className="col-span-4 mt-1 text-paper lg:col-span-8 lg:mt-0">{f.value}</dd>
+            </motion.div>
+          </div>
+        ))}
+        <div className="col-span-4 lg:col-span-11 lg:col-start-2">
+          <Rule delay={facts.length * 0.07} />
+        </div>
+      </dl>
     </section>
   )
 }

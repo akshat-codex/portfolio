@@ -1,285 +1,375 @@
-import { motion } from 'framer-motion'
-import { TypeAnimation } from 'react-type-animation'
-import { FaGithub, FaLinkedin, FaEnvelope, FaArrowRight } from 'react-icons/fa'
-import { HiDownload } from 'react-icons/hi'
-import { Link } from 'react-scroll'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import { EASE_QUART } from './ui'
+import { KineticName, Magnetic, useIntroDone, useCalm, useReducedMotionPref } from './fx'
 
-const stats = [
-  { val: '9+',   key: 'CGPA'        },
-  { val: '4',    key: 'PROJECTS'    },
-  { val: '25TH', key: 'UNIV. RANK'  },
-  { val: '3',    key: 'AWS CERTS'   },
+const CV_HREF = '/Akshat_Srivastava_CV.pdf'
+const NAME_LINES = ['AKSHAT KUMAR', 'SRIVASTAVA']
+const MAX_NAME_PX = 132
+
+const links = [
+  { label: 'GitHub', href: 'https://github.com/akshat-codex', external: true },
+  { label: 'LinkedIn', href: 'https://linkedin.com/in/akshhatsrivastava', external: true },
+  { label: 'Email', href: 'mailto:akshsvt123@gmail.com', external: false },
 ]
 
-/* ── Photo Card ─────────────────────────────────────────── */
-const PhotoCard = () => (
-  <div className="relative flex justify-center items-center animate-float" style={{ zIndex: 1 }}>
+// Measured at 100px with the same per-letter inline-block structure KineticName renders.
+// Desktop sets two lines; phones let "AKSHAT KUMAR" wrap, so the widest single word wins.
+const MEASURE = ['AKSHAT KUMAR', 'SRIVASTAVA', 'AKSHAT', 'KUMAR']
 
-    {/* Outer ambient glow */}
-    <div style={{
-      position: 'absolute',
-      width: '340px',
-      height: '420px',
-      borderRadius: '30px',
-      background: 'radial-gradient(ellipse at 50% 40%, rgba(79,70,229,0.35) 0%, rgba(6,182,212,0.12) 50%, transparent 70%)',
-      filter: 'blur(28px)',
-      zIndex: 0,
-    }} />
+function useFittedName() {
+  const boxRef = useRef(null)
+  const measureRef = useRef(null)
+  const [size, setSize] = useState(null)
 
-    {/* Holo rotating border */}
-    <div className="holo-ring" style={{ borderRadius: '26px', position: 'relative', zIndex: 1 }}>
-      <div style={{
-        width: '272px',
-        height: '358px',
-        borderRadius: '24px',
-        overflow: 'hidden',
-        position: 'relative',
-        background: '#0C0C1A',
-      }}>
-        <img
-          src="/akshat.jpg"
-          alt="Akshat Kumar Srivastava"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center top',
-            display: 'block',
-          }}
-          onError={(e) => { e.target.style.display = 'none' }}
-        />
-        {/* Gradient overlay at bottom */}
-        <div style={{
-          position: 'absolute',
-          bottom: 0, left: 0, right: 0,
-          padding: '20px 16px 14px',
-          background: 'linear-gradient(transparent, rgba(6,6,16,0.97))',
-        }}>
-          <p style={{ fontFamily: 'JetBrains Mono', fontSize: '0.55rem', color: '#4F46E5', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '3px' }}>
-            Python / Backend Dev
-          </p>
-          <p style={{ color: '#06B6D4', fontSize: '0.72rem', fontFamily: 'Syne, sans-serif', fontWeight: 700 }}>
-            @ Gravity Engineering Services
-          </p>
-        </div>
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    const measure = measureRef.current
+    if (!box || !measure) return undefined
+    const fit = () => {
+      const w = box.clientWidth
+      const widths = Array.from(measure.children).map((el) => el.getBoundingClientRect().width)
+      const lg = window.matchMedia('(min-width: 1024px)').matches
+      const widest = lg ? Math.max(widths[0], widths[1]) : Math.max(widths[1], widths[2], widths[3])
+      if (!w || !widest) return
+      // 0.97 leaves room for the cursor lean (a few px) without touching the edge.
+      setSize(Math.min(MAX_NAME_PX, Math.floor((w / widest) * 100 * 0.97 * 10) / 10))
+    }
+    fit()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : null
+    ro?.observe(box)
+    document.fonts?.ready.then(fit).catch(() => {})
+    return () => ro?.disconnect()
+  }, [])
 
-        {/* Scanline shimmer */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(79,70,229,0.015) 2px, rgba(79,70,229,0.015) 4px)',
-          pointerEvents: 'none',
-        }} />
-      </div>
-    </div>
+  return { boxRef, measureRef, size }
+}
 
-    {/* Corner HUD brackets */}
-    {[
-      { top: '-8px', left: '-8px', borderTop: '2px solid rgba(79,70,229,0.7)', borderLeft: '2px solid rgba(79,70,229,0.7)' },
-      { top: '-8px', right: '-8px', borderTop: '2px solid rgba(6,182,212,0.7)', borderRight: '2px solid rgba(6,182,212,0.7)' },
-      { bottom: '-8px', left: '-8px', borderBottom: '2px solid rgba(6,182,212,0.7)', borderLeft: '2px solid rgba(6,182,212,0.7)' },
-      { bottom: '-8px', right: '-8px', borderBottom: '2px solid rgba(79,70,229,0.7)', borderRight: '2px solid rgba(79,70,229,0.7)' },
-    ].map((s, i) => (
-      <div key={i} style={{ position: 'absolute', width: '18px', height: '18px', ...s, zIndex: 2 }} />
-    ))}
+/** Mask-rise gated on the intro: plays once the wipe uncovers the hero. */
+function Rise({ as: Tag = 'div', show, delay = 0, className = '', children }) {
+  const reduce = useReducedMotionPref()
+  if (reduce) return <Tag className={className}>{children}</Tag>
+  return (
+    <Tag className={`overflow-hidden ${className}`}>
+      <motion.span
+        className="block"
+        initial={{ y: '105%' }}
+        animate={{ y: show ? '0%' : '105%' }}
+        transition={{ duration: 0.8, delay, ease: EASE_QUART }}
+      >
+        {children}
+      </motion.span>
+    </Tag>
+  )
+}
 
-    {/* Status badge */}
-    <div style={{
-      position: 'absolute',
-      bottom: '-20px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: 'rgba(6,6,16,0.92)',
-      border: '1px solid rgba(79,70,229,0.35)',
-      borderRadius: '20px',
-      padding: '5px 18px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '7px',
-      backdropFilter: 'blur(16px)',
-      whiteSpace: 'nowrap',
-      zIndex: 2,
-    }}>
-      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 8px #10B981', flexShrink: 0 }} className="animate-pulse" />
-      <span style={{ fontFamily: 'JetBrains Mono', fontSize: '0.58rem', letterSpacing: '0.12em', color: '#94A3B8', textTransform: 'uppercase' }}>
-        Available for Hire
-      </span>
-    </div>
+/** Hairline that draws left to right once the intro is done. */
+function Line({ show, delay = 0, accent = false, className = '' }) {
+  const reduce = useReducedMotionPref()
+  const cls = `block h-px w-full origin-left ${accent ? 'bg-signal' : 'bg-rule'} ${className}`
+  if (reduce) return <span aria-hidden="true" className={cls} />
+  return (
+    <motion.span
+      aria-hidden="true"
+      className={cls}
+      initial={{ scaleX: 0 }}
+      animate={{ scaleX: show ? 1 : 0 }}
+      transition={{ duration: 0.9, delay, ease: EASE_QUART }}
+    />
+  )
+}
 
-    {/* Floating ping dots */}
-    {[
-      { top: '18%', left: '-22px', color: '#4F46E5', delay: '0s' },
-      { top: '55%', right: '-20px', color: '#06B6D4', delay: '1.2s' },
-      { top: '80%', left: '-16px', color: '#8B5CF6', delay: '2.4s' },
-    ].map((d, i) => (
-      <div key={i} style={{ position: 'absolute', ...d, zIndex: 0 }}>
-        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: d.color, boxShadow: `0 0 10px ${d.color}`, animation: `pulse 2s ${d.delay} infinite` }} />
-      </div>
-    ))}
-  </div>
+/** Fade + small lift, for groups that are not single lines. */
+function Lift({ show, delay = 0, className = '', children }) {
+  const reduce = useReducedMotionPref()
+  if (reduce) return <div className={className}>{children}</div>
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 14 }}
+      animate={show ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
+      transition={{ duration: 0.7, delay, ease: EASE_QUART }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+const TextLink = ({ href, external, children }) => (
+  <a
+    href={href}
+    {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
+    className="group relative inline-block py-1 text-[0.8125rem] font-semibold uppercase tracking-[0.1em] text-paper"
+  >
+    {children}
+    <span aria-hidden="true" className="absolute inset-x-0 bottom-0 block h-px bg-rule" />
+    <span
+      aria-hidden="true"
+      className="absolute inset-x-0 bottom-0 block h-px origin-right scale-x-0 bg-paper transition-transform duration-500 ease-quart group-hover:origin-left group-hover:scale-x-100"
+    />
+  </a>
 )
 
-/* ── Hero ────────────────────────────────────────────────── */
+/** Live "now" marker: a small orange square breathing slowly. */
+function NowMarker() {
+  const reduce = useReducedMotionPref()
+  return (
+    <span className="flex items-center gap-1.5 text-signal">
+      <motion.span
+        aria-hidden="true"
+        className="block h-1.5 w-1.5 bg-signal"
+        animate={reduce ? undefined : { opacity: [1, 0.3, 1], scale: [1, 0.75, 1] }}
+        transition={reduce ? undefined : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      Now
+    </span>
+  )
+}
+
+// Fixed heights so the bar reads as data, not noise; one signal sample sweeps across.
+const CUE_BARS = [10, 4, 14, 7, 12, 5, 16, 9, 6, 13, 4, 11, 8, 15, 5, 10, 7, 12, 4, 14, 9, 6, 11, 8]
+
+function ScrollCue({ show }) {
+  const reduce = useReducedMotionPref()
+  return (
+    <Lift show={show} delay={1.05}>
+      <a
+        href="#about"
+        className="group flex items-end gap-4 py-2"
+        aria-label="Scroll to 01 About"
+      >
+        <span className="label text-paper">Scroll</span>
+        <span aria-hidden="true" className="relative flex h-4 items-end gap-[3px] overflow-hidden">
+          {CUE_BARS.map((h, i) => (
+            <span key={i} className="block w-px bg-paper/40" style={{ height: h }} />
+          ))}
+          {reduce ? (
+            <span className="absolute bottom-0 left-0 block h-4 w-[3px] bg-signal" />
+          ) : (
+            <motion.span
+              className="absolute bottom-0 left-0 block h-4 w-[3px] bg-signal"
+              initial={{ x: 0 }}
+              animate={{ x: [0, 90, 90] }}
+              transition={{ duration: 2.6, times: [0, 0.8, 1], repeat: Infinity, ease: EASE_QUART }}
+            />
+          )}
+        </span>
+        <span className="label num hidden transition-colors duration-300 group-hover:text-paper xs:inline">
+          01 About
+        </span>
+      </a>
+    </Lift>
+  )
+}
+
+// Engineered ring: a technical dial with 72 ticks (every 6th long) that turns slowly behind the figure.
+const TICKS = Array.from({ length: 72 }, (_, i) => i)
+function Dial({ className = '' }) {
+  return (
+    <svg viewBox="0 0 200 200" aria-hidden="true" className={className}>
+      <circle cx="100" cy="100" r="96" fill="none" stroke="rgba(242,241,236,0.18)" strokeWidth="0.4" />
+      <circle cx="100" cy="100" r="78" fill="none" stroke="rgba(255,77,0,0.35)" strokeWidth="0.4" strokeDasharray="2 3" />
+      {TICKS.map((i) => {
+        const long = i % 6 === 0
+        const a = (i / 72) * Math.PI * 2
+        const r1 = long ? 86 : 90
+        return (
+          <line
+            key={i}
+            x1={100 + Math.cos(a) * r1}
+            y1={100 + Math.sin(a) * r1}
+            x2={100 + Math.cos(a) * 95}
+            y2={100 + Math.sin(a) * 95}
+            stroke={i === 0 ? '#ff4d00' : 'rgba(242,241,236,0.35)'}
+            strokeWidth={long ? 0.6 : 0.3}
+          />
+        )
+      })}
+    </svg>
+  )
+}
+
+function Portrait({ show, progress, calm }) {
+  const reduce = useReducedMotionPref()
+  const still = reduce || calm
+  // Parallax: figure rises a touch faster than the aura as the hero scrolls away (depth).
+  const figY = useTransform(progress, [0, 1], ['0%', '-6%'])
+  const auraY = useTransform(progress, [0, 1], ['0%', '8%'])
+  return (
+    <figure className="relative mx-auto w-full">
+      <motion.div
+        className="relative aspect-square"
+        initial={reduce ? false : { opacity: 0, y: 40 }}
+        animate={show || reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+        transition={{ duration: 1.1, delay: 0.15, ease: EASE_QUART }}
+      >
+        {/* Aura: ember light + slow rotating rays, centred behind the head and shoulders */}
+        <motion.div aria-hidden="true" className="pointer-events-none absolute inset-[-18%_-30%_10%_-30%]" style={still ? undefined : { y: auraY }}>
+          <div className="portrait-glow absolute inset-0" />
+          <div className={`portrait-rays absolute inset-0 ${still ? '' : 'animate-[spin_40s_linear_infinite]'}`} />
+          <Dial
+            className={`absolute left-1/2 top-[30%] w-[78%] -translate-x-1/2 -translate-y-1/2 ${still ? '' : 'animate-[spin_90s_linear_infinite]'}`}
+          />
+        </motion.div>
+
+        {/* The figure itself: full colour, background removed, bottom fades into the page */}
+        <motion.div className="portrait-figure absolute inset-0" style={still ? undefined : { y: figY }}>
+          <img
+            src="/akshat-cutout.webp"
+            alt="Portrait of Akshat Kumar Srivastava"
+            width="1000"
+            height="1000"
+            className="absolute inset-0 h-full w-full object-contain object-bottom"
+          />
+          {/* Gloss: a light band that sweeps across the figure only (masked by the cutout) */}
+          {!still ? <div aria-hidden="true" className="portrait-sheen absolute inset-0" /> : null}
+        </motion.div>
+      </motion.div>
+    </figure>
+  )
+}
+
 const Hero = () => {
-  const stagger = {
-    hidden: {},
-    show: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } },
-  }
-  const up = {
-    hidden: { opacity: 0, y: 28 },
-    show:   { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
-  }
+  const done = useIntroDone()
+  const calm = useCalm()
+  const { boxRef, measureRef, size } = useFittedName()
+  const sectionRef = useRef(null)
+
+  // Cinematic handoff: as the hero leaves, the name drifts down and settles smaller.
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] })
+  const nameScale = useTransform(scrollYProgress, [0, 1], [1, 0.9])
+  const nameY = useTransform(scrollYProgress, [0, 1], [0, 60])
+  const nameOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0.15])
+  const nameMotion = calm ? undefined : { scale: nameScale, y: nameY, opacity: nameOpacity }
 
   return (
-    <section id="hero" className="relative min-h-screen flex items-center px-6 lg:px-20 pt-24 pb-16 overflow-hidden">
-
-      {/* HUD corner brackets */}
-      <div className="absolute top-20 left-6 lg:left-20 w-8 h-8 pointer-events-none"
-        style={{ borderTop: '1px solid rgba(79,70,229,0.4)', borderLeft: '1px solid rgba(79,70,229,0.4)' }} />
-      <div className="absolute bottom-20 right-6 lg:right-20 w-8 h-8 pointer-events-none"
-        style={{ borderBottom: '1px solid rgba(79,70,229,0.4)', borderRight: '1px solid rgba(79,70,229,0.4)' }} />
-
-      {/* HUD coordinates */}
-      <div className="absolute top-20 right-6 lg:right-20 text-right pointer-events-none hidden lg:block">
-        <p className="label-muted">26.8467° N</p>
-        <p className="label-muted">80.9462° E</p>
-        <p className="label-muted" style={{ color: '#4F46E555' }}>LKO-IND</p>
-      </div>
-
-      {/* Two-column grid */}
-      <div className="w-full max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-
-        {/* ── LEFT: Text content ── */}
-        <motion.div variants={stagger} initial="hidden" animate="show">
-
-          {/* Status pills */}
-          <motion.div variants={up} className="flex flex-wrap items-center gap-3 mb-7">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md glass-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="label-muted" style={{ color: '#94A3B8' }}>Backend Developer @ Gravity</span>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md glass-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              <span className="label-muted" style={{ color: '#94A3B8' }}>Open to Collaborations</span>
-            </div>
-          </motion.div>
-
-          {/* Name */}
-          <motion.div variants={up} className="mb-2">
-            <h1 className="display-name">
-              AKSHAT KUMAR
-              <br />
-              SRIVASTAVA
-              <span className="cursor-blink" style={{ color: '#4F46E5', marginLeft: '3px' }}>_</span>
-            </h1>
-          </motion.div>
-
-          {/* Gradient rule */}
-          <motion.div variants={up} className="mb-6">
-            <div style={{ height: '1px', maxWidth: '460px', background: 'linear-gradient(90deg, rgba(79,70,229,0.7), rgba(6,182,212,0.4), transparent)' }} />
-          </motion.div>
-
-          {/* Terminal lines */}
-          <motion.div variants={up} className="mb-7 space-y-1.5">
-            {[
-              { num: '01', text: 'Python / Backend Developer @ Gravity Engineering Services', accent: false },
-              { num: '02', text: 'B.Tech Computer Science · BBDU · Class of 2026', accent: false },
-              { num: '03', text: 'AWS · React · Node.js · Java · Machine Learning · REST APIs', accent: true },
-            ].map((line) => (
-              <div key={line.num} className="flex items-start gap-3">
-                <span className="label-muted shrink-0 mt-px">{line.num}</span>
-                <span className="text-sm font-mono" style={{ color: line.accent ? '#94A3B8' : '#64748B', letterSpacing: '0.01em' }}>
-                  {line.text}
+    <section
+      id="hero"
+      ref={sectionRef}
+      className="shell relative flex flex-col pb-6 pt-8 lg:min-h-[min(calc(100svh-3.5rem),64rem)] lg:pb-8 lg:pt-10"
+    >
+      {/* Off-screen measuring lines for the fitted name. */}
+      <div aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 h-0 w-0 overflow-hidden">
+        <div ref={measureRef}>
+          {MEASURE.map((t) => (
+            <span key={t} className="display inline-block whitespace-nowrap text-[100px]">
+              {Array.from(t).map((ch, i) => (
+                <span key={i} className="inline-block">
+                  {ch === ' ' ? ' ' : ch}
                 </span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* TypeAnimation */}
-          <motion.div variants={up} className="flex items-center gap-2 mb-8 text-sm font-mono" style={{ color: '#4F46E5' }}>
-            <span style={{ opacity: 0.5 }}>&gt;&gt;</span>
-            <TypeAnimation
-              sequence={[
-                'currently: python_backend_dev()',
-                2000,
-                'building: scalable_apis()',
-                2000,
-                'deploying: aws_serverless()',
-                2000,
-                'exploring: ai_ml_solutions()',
-                2000,
-              ]}
-              repeat={Infinity}
-              style={{ color: '#A5B4FC' }}
-            />
-          </motion.div>
-
-          {/* CTA */}
-          <motion.div variants={up} className="flex flex-wrap gap-3 mb-12">
-            <Link to="projects" smooth duration={800}>
-              <button className="btn-solid">View Projects <FaArrowRight className="text-xs" /></button>
-            </Link>
-            <a href="/Akshat_Srivastava_CV.pdf" download="Akshat_Srivastava_CV.pdf" className="btn-ghost">
-              <HiDownload className="text-sm" /> Download CV
-            </a>
-            <div className="flex items-center gap-2 ml-1">
-              {[
-                { icon: <FaGithub />, href: 'https://github.com/akshat-codex', label: 'GitHub' },
-                { icon: <FaLinkedin />, href: 'https://linkedin.com/in/akshhatsrivastava', label: 'LinkedIn' },
-                { icon: <FaEnvelope />, href: 'mailto:akshsvt123@gmail.com', label: 'Email' },
-              ].map((s) => (
-                <a key={s.label} href={s.href} target="_blank" rel="noreferrer" title={s.label}
-                  className="w-9 h-9 flex items-center justify-center rounded-lg glass-sm text-sm transition-all duration-300 hover:-translate-y-0.5"
-                  style={{ color: '#475569' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = '#A5B4FC'; e.currentTarget.style.borderColor = 'rgba(79,70,229,0.3)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '' }}
-                >{s.icon}</a>
               ))}
-            </div>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div variants={up}>
-            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)', marginBottom: '1.4rem' }} />
-            <div className="flex flex-wrap gap-8 lg:gap-12">
-              {stats.map((s) => (
-                <div key={s.key}>
-                  <p style={{
-                    fontFamily: 'Orbitron, Syne, sans-serif',
-                    fontWeight: 900,
-                    fontSize: 'clamp(1.4rem, 2.5vw, 2.1rem)',
-                    lineHeight: 1,
-                    background: 'linear-gradient(135deg, #E2E8F0 0%, #64748B 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}>{s.val}</p>
-                  <p className="label-muted mt-1">{s.key}</p>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* ── RIGHT: Photo ── */}
-        <motion.div
-          initial={{ opacity: 0, x: 40, scale: 0.96 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="hidden lg:flex justify-center items-center"
-          style={{ paddingTop: '30px', paddingBottom: '30px' }}
-        >
-          <PhotoCard />
-        </motion.div>
+            </span>
+          ))}
+        </div>
       </div>
 
-      {/* Scroll hint */}
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-      >
-        <div className="w-px h-10" style={{ background: 'linear-gradient(to bottom, rgba(79,70,229,0.5), transparent)' }} />
-        <span className="label-muted">SCROLL</span>
-      </motion.div>
+      <div className="grid-12 flex-1 gap-y-8 lg:grid-rows-[auto_1fr] lg:gap-y-10">
+        {/* Name across the full measure on desktop. Font size lives on the wrapper; the h1 inherits it. */}
+        <motion.div
+          ref={boxRef}
+          className="relative z-0 col-span-4 origin-[50%_0%] text-[clamp(2.5rem,13vw,4.5rem)] will-change-transform lg:col-span-12 lg:row-start-1 lg:text-[clamp(3rem,8.4vw,8.25rem)]"
+          style={{ ...(size ? { fontSize: `${size}px` } : null), ...nameMotion }}
+        >
+          <KineticName lines={NAME_LINES} className="display" />
+        </motion.div>
+
+        {/* Portrait: centred, standing in front of the name (text-behind-subject) */}
+        <div className="col-span-4 mx-auto -mt-6 w-full max-w-[28rem] lg:pointer-events-none lg:absolute lg:bottom-0 lg:left-1/2 lg:z-10 lg:mt-0 lg:w-[min(46vw,44rem)] lg:max-w-none lg:-translate-x-1/2">
+          <Portrait show={done} progress={scrollYProgress} calm={calm} />
+        </div>
+
+        {/* Right column (desktop): focus + base, beside the figure */}
+        <dl className="relative z-20 col-span-4 hidden gap-y-6 lg:col-span-3 lg:col-start-10 lg:row-start-2 lg:grid lg:self-end lg:pb-24 lg:text-right">
+          <Lift show={done} delay={0.63}>
+            <dt className="label relative pt-3">
+              <Line show={done} delay={0.58} className="absolute right-0 top-0" />
+              Focus
+            </dt>
+            <dd className="mt-2 font-semibold leading-snug text-paper">Django · FastAPI · Celery · Redis · PostgreSQL</dd>
+          </Lift>
+          <Lift show={done} delay={0.71}>
+            <dt className="label relative pt-3">
+              <Line show={done} delay={0.66} className="absolute right-0 top-0" />
+              Base
+            </dt>
+            <dd className="mt-2 font-semibold leading-snug text-paper">Lucknow, India</dd>
+          </Lift>
+        </dl>
+
+        {/* Left column: lede, role and actions */}
+        <div className="relative z-20 col-span-4 lg:row-start-2 lg:self-end">
+          <Rise as="p" show={done} delay={0.35} className="max-w-[54ch] text-[1.0625rem] leading-relaxed text-grey lg:max-w-[34ch] lg:text-lg">
+            Python backend developer building production SaaS and AI automation: the APIs, queues,
+            PostgreSQL and mail infrastructure behind Polluxa SalesTech and Newton-AI.
+          </Rise>
+
+          <dl className="mt-8 grid grid-cols-1 gap-y-5 sm:grid-cols-3 sm:gap-x-[var(--gap)] lg:mt-10 lg:grid-cols-1">
+            <Lift show={done} delay={0.55}>
+              <dt className="label relative flex items-center justify-between pt-3">
+                <Line show={done} delay={0.5} accent className="absolute left-0 top-0" />
+                <span>Role</span>
+                <NowMarker />
+              </dt>
+              <dd className="mt-2 font-semibold leading-snug text-paper">
+                Python Backend Developer
+                <span className="block font-normal text-grey">Gravity Engineering Services</span>
+                <span className="num block text-sm font-normal text-grey">
+                  <time dateTime="2026-06">Jun 2026</time> – present
+                </span>
+              </dd>
+            </Lift>
+            {/* On phones/tablets the focus + base stay in this row; desktop shows them on the right */}
+            <Lift show={done} delay={0.63} className="lg:hidden">
+              <dt className="label relative pt-3">
+                <Line show={done} delay={0.58} className="absolute left-0 top-0" />
+                Focus
+              </dt>
+              <dd className="mt-2 font-semibold leading-snug text-paper">
+                Django · FastAPI · Celery · Redis · PostgreSQL
+              </dd>
+            </Lift>
+            <Lift show={done} delay={0.71} className="lg:hidden">
+              <dt className="label relative pt-3">
+                <Line show={done} delay={0.66} className="absolute left-0 top-0" />
+                Base
+              </dt>
+              <dd className="mt-2 font-semibold leading-snug text-paper">Lucknow, India</dd>
+            </Lift>
+          </dl>
+
+          <Lift show={done} delay={0.85} className="mt-8 flex flex-col gap-5 xs:flex-row xs:flex-wrap xs:items-center xs:gap-x-8 lg:mt-10">
+            <Magnetic strength={0.35} className="self-start">
+              <a
+                href={CV_HREF}
+                download="Akshat_Srivastava_CV.pdf"
+                className="group relative inline-flex items-center justify-between gap-6 overflow-hidden bg-signal px-5 py-4 text-[0.8125rem] font-bold uppercase tracking-[0.1em] text-ink"
+              >
+                {/* Paper fill wipes up on hover; label stays ink. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 block origin-bottom scale-y-0 bg-paper transition-transform duration-500 ease-quart group-hover:scale-y-100"
+                />
+                <span className="relative">Download CV</span>
+                <span
+                  aria-hidden="true"
+                  className="relative block h-[2px] w-6 origin-left bg-ink transition-transform duration-500 ease-quart group-hover:scale-x-[1.7]"
+                />
+              </a>
+            </Magnetic>
+            <div className="flex flex-wrap items-center gap-x-7 gap-y-3">
+              {links.map((l) => (
+                <TextLink key={l.label} href={l.href} external={l.external}>
+                  {l.label}
+                </TextLink>
+              ))}
+            </div>
+          </Lift>
+        </div>
+      </div>
+
+      <div className="mt-10 lg:mt-6">
+        <ScrollCue show={done} />
+      </div>
     </section>
   )
 }

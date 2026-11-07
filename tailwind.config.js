@@ -3,36 +3,24 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      fontFamily: {
-        mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
-        sans: ['Inter', 'sans-serif'],
+      screens: {
+        xs: '420px',
       },
       colors: {
-        neon: {
-          cyan: '#00d4ff',
-          purple: '#7b2fff',
-          blue: '#0066ff',
-        },
+        ink: '#0b0b0c',
+        paper: '#f2f1ec',
+        grey: '#8a8a86',
+        rule: 'rgba(242, 241, 236, 0.14)',
+        signal: '#ff4d00',
       },
-      animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
-        'spin-slow': 'spin 12s linear infinite',
-        'scan': 'scan 3s linear infinite',
+      fontFamily: {
+        sans: ['"Archivo Variable"', 'Archivo', 'system-ui', 'sans-serif'],
       },
-      keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-15px)' },
-        },
-        glowPulse: {
-          '0%, 100%': { opacity: 0.6 },
-          '50%': { opacity: 1 },
-        },
-        scan: {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(100vh)' },
-        },
+      transitionTimingFunction: {
+        quart: 'cubic-bezier(0.25, 1, 0.5, 1)',
+      },
+      borderRadius: {
+        DEFAULT: '0',
       },
     },
   },

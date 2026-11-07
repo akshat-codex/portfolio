@@ -1,154 +1,248 @@
-import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useEffect, useRef } from 'react'
+import { animate, motion, useInView, useScroll, useTransform } from 'framer-motion'
+import { Reveal, Rule, SectionHead, EASE_QUART } from './ui'
+import { useCalm, useReducedMotionPref } from './fx'
 
-const services = [
+const STATEMENT =
+  'I build backends for production SaaS and AI automation, Polluxa SalesTech and Newton-AI: Django and FastAPI services, Celery and Redis queues, PostgreSQL, and SMTP/IMAP mail.'
+
+/** Counts up once when scrolled into view. Screen readers get the final value only. */
+function CountUp({ value, decimals = 0, duration = 1.4 }) {
+  const ref = useRef(null)
+  const reduce = useReducedMotionPref()
+  const inView = useInView(ref, { once: true, margin: '0px 0px -15% 0px' })
+  const final = value.toFixed(decimals)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || reduce) return undefined
+    if (!inView) {
+      el.textContent = (0).toFixed(decimals)
+      return undefined
+    }
+    const controls = animate(0, value, {
+      duration,
+      ease: EASE_QUART,
+      onUpdate: (v) => {
+        el.textContent = v.toFixed(decimals)
+      },
+    })
+    return () => controls.stop()
+  }, [inView, reduce, value, decimals, duration])
+
+  return (
+    <>
+      <span className="sr-only">{final}</span>
+      <span ref={ref} aria-hidden="true" className="num">
+        {final}
+      </span>
+    </>
+  )
+}
+
+const facts = [
   {
-    num: '01',
+    label: 'Now',
+    live: true,
+    value: 'Python Backend Developer',
+    detail: (
+      <>
+        Gravity Engineering Services, since <time dateTime="2026-06">Jun 2026</time>
+      </>
+    ),
+  },
+  {
+    label: 'Education',
+    value: 'B.Tech Computer Science',
+    detail: (
+      <>
+        Babu Banarasi Das University, <span className="num">2022–2026</span>
+      </>
+    ),
+  },
+  {
+    label: 'CGPA',
+    big: true,
+    value: (
+      <>
+        <CountUp value={8.97} decimals={2} />
+        <span className="num text-grey">/10</span>
+      </>
+    ),
+    detail: 'First division with honours',
+  },
+  { label: 'Base', value: 'Lucknow, India', detail: 'Open to collaborations' },
+]
+
+const practice = [
+  {
     title: 'Backend Engineering',
     desc: 'Scalable REST APIs, microservices, and server-side systems using Python, Java, Node.js & Express.',
     tags: ['Python', 'Java', 'Node.js', 'REST APIs'],
-    color: '#7B2FFF',
   },
   {
-    num: '02',
     title: 'Cloud & AWS',
     desc: 'Serverless architectures, cloud deployment, and infrastructure design with AWS core services.',
     tags: ['Lambda', 'EC2', 'DynamoDB', 'API Gateway'],
-    color: '#FF9900',
   },
   {
-    num: '03',
     title: 'Full Stack Development',
     desc: 'End-to-end web apps using React on the frontend and Express/Node on the backend with MongoDB.',
     tags: ['React.js', 'MongoDB', 'Express', 'HTML/CSS'],
-    color: '#00D4FF',
   },
   {
-    num: '04',
     title: 'AI / ML Solutions',
     desc: 'NLP pipelines, ML model training, and intelligent data analysis with Python-based frameworks.',
     tags: ['Scikit-Learn', 'NLP', 'TF-IDF', 'Flask'],
-    color: '#FF6B35',
   },
 ]
 
-const tiltEnter = (e) => { e.currentTarget.style.transition = 'transform 0.12s ease' }
-const tiltMove = (e) => {
-  const el = e.currentTarget
-  const r = el.getBoundingClientRect()
-  const x = (e.clientX - r.left) / r.width - 0.5
-  const y = (e.clientY - r.top) / r.height - 0.5
-  el.style.transform = `perspective(900px) rotateX(${-y * 10}deg) rotateY(${x * 10}deg) translateZ(6px)`
+const statementClass =
+  'text-[clamp(1.5rem,3.4vw,2.75rem)] font-semibold leading-[1.12] tracking-[-0.015em] text-paper [font-stretch:112%]'
+
+function Word({ progress, range, children }) {
+  const opacity = useTransform(progress, range, [0.15, 1])
+  return (
+    <motion.span className="inline" style={{ opacity }}>
+      {children}
+    </motion.span>
+  )
 }
-const tiltLeave = (e) => {
-  e.currentTarget.style.transition = 'transform 0.55s ease'
-  e.currentTarget.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0px)'
+
+/** The statement lights up word by word, scrubbed by scroll. Calm: plain text. */
+function ScrubStatement() {
+  const calm = useCalm()
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start 0.85', 'end 0.5'] })
+  if (calm) return <p ref={ref} className={statementClass}>{STATEMENT}</p>
+  const words = STATEMENT.split(' ')
+  const n = words.length
+  return (
+    <p ref={ref} className={statementClass}>
+      {words.map((w, i) => (
+        <Word key={i} progress={scrollYProgress} range={[i / n, Math.min(1, (i + 2) / n)]}>
+          {w}
+          {i < n - 1 ? ' ' : null}
+        </Word>
+      ))}
+    </p>
+  )
+}
+
+function PracticeRow({ p, i }) {
+  const reduce = useReducedMotionPref()
+  const row = (
+    <div className="grid grid-cols-1 gap-y-2 py-5 lg:grid-cols-11 lg:gap-x-[var(--gap)]">
+      <h4 className="flex items-baseline gap-3 font-bold uppercase tracking-[0.02em] text-paper [font-stretch:118%] lg:col-span-3">
+        <span
+          aria-hidden="true"
+          className="block h-1.5 w-1.5 shrink-0 -translate-x-2 bg-signal opacity-0 transition-[transform,opacity] duration-500 ease-quart group-hover:translate-x-0 group-hover:opacity-100"
+        />
+        <span className="-ml-[1.125rem] transition-transform duration-500 ease-quart group-hover:translate-x-[1.125rem]">
+          {p.title}
+        </span>
+      </h4>
+      <p className="max-w-[60ch] text-grey transition-colors duration-500 group-hover:text-paper lg:col-span-5">{p.desc}</p>
+      <p className="label lg:col-span-3 lg:pt-1 lg:text-right">{p.tags.join(' · ')}</p>
+    </div>
+  )
+  return (
+    <li className="group relative">
+      <Rule delay={i * 0.06} />
+      {/* Paper wash wipes in under the row on hover. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-px block origin-left scale-x-0 bg-paper/[0.035] transition-transform duration-700 ease-quart group-hover:scale-x-100"
+      />
+      {reduce ? (
+        row
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+          transition={{ duration: 0.8, delay: 0.05 + i * 0.07, ease: EASE_QUART }}
+        >
+          {row}
+        </motion.div>
+      )}
+    </li>
+  )
 }
 
 const About = () => {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
-
-  const fadeUp = (delay = 0) => ({
-    hidden: { opacity: 0, y: 40 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay } },
-  })
-
+  const reduce = useReducedMotionPref()
   return (
-    <section id="about" className="relative py-28 px-6 lg:px-16 overflow-hidden">
-      {/* Ghost number */}
-      <span className="section-ghost-num" style={{ top: '-20px', left: '-20px' }}>
-        00
-      </span>
+    <section id="about" className="shell py-24 lg:py-36">
+      <SectionHead index="01" title="About" />
 
-      <div className="max-w-7xl mx-auto" ref={ref}>
-        {/* Header */}
-        <motion.div
-          variants={fadeUp(0)}
-          initial="hidden"
-          animate={inView ? 'visible' : 'hidden'}
-          className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-20"
-        >
-          <div>
-            <p className="label-text mb-4">About Me</p>
-            <h2 className="heading-text text-white">
-              Building tomorrow's<br />
-              <span className="gradient-text">technology today</span>
-            </h2>
-          </div>
-          <div className="max-w-md">
-            <p className="text-gray-500 text-sm leading-relaxed">
-              B.Tech CSE graduate (2026) & Python/Backend Developer at{' '}
-              <span className="text-white">Gravity Engineering Services</span>. Passionate about
-              cloud-native systems, AI, and shipping things that work in the real world.
-            </p>
-            <div className="flex items-center gap-3 mt-4">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="label-text">Available for opportunities · Lucknow, India</span>
-            </div>
-          </div>
-        </motion.div>
+      <div className="grid-12 mt-12 gap-y-14 lg:mt-20">
+        {/* Statement, columns 2-9 */}
+        <div className="col-span-4 lg:col-span-8 lg:col-start-2">
+          <ScrubStatement />
+          <Reveal as="p" delay={0.12} className="mt-8 max-w-[62ch] text-[1.0625rem] leading-relaxed text-grey">
+            B.Tech CSE graduate (2026) and Python/Backend Developer at{' '}
+            <span className="text-paper">Gravity Engineering Services</span>. Passionate about
+            cloud-native systems, AI, and shipping things that work in the real world, debugged across
+            the full API → database → queue → mail path.
+          </Reveal>
+        </div>
 
-        {/* Services grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {services.map((s, i) => (
-            <motion.div
-              key={s.num}
-              variants={fadeUp(0.1 + i * 0.1)}
-              initial="hidden"
-              animate={inView ? 'visible' : 'hidden'}
-              className="glass glass-hover p-6 relative group"
-              onMouseEnter={tiltEnter}
-              onMouseMove={tiltMove}
-              onMouseLeave={tiltLeave}
-            >
-              {/* Number */}
-              <p
-                className="label-text mb-6 transition-colors duration-300"
-                style={{ color: '#333', fontFamily: 'Syne, sans-serif', fontSize: '0.65rem' }}
-              >
-                {s.num} ——
-              </p>
-
-              {/* Icon dot */}
-              <div
-                className="w-8 h-8 rounded-lg mb-5 flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-                style={{ background: `${s.color}15`, border: `1px solid ${s.color}30` }}
-              >
-                <div className="w-2 h-2 rounded-full" style={{ background: s.color }} />
+        {/* Facts, columns 10-12 */}
+        <dl className="col-span-4 lg:col-span-3 lg:col-start-10">
+          {facts.map((f, i) => {
+            const body = (
+              <>
+                <dt className={`label relative flex items-center gap-1.5 pt-3 ${f.live ? 'text-signal' : ''}`}>
+                  <Rule accent={f.live} delay={0.1 + i * 0.08} className="absolute left-0 top-0" />
+                  {f.live ? (
+                    <motion.span
+                      aria-hidden="true"
+                      className="block h-1.5 w-1.5 bg-signal"
+                      animate={reduce ? undefined : { opacity: [1, 0.3, 1] }}
+                      transition={reduce ? undefined : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                  ) : null}
+                  {f.label}
+                </dt>
+                <dd
+                  className={`mt-1.5 text-paper ${
+                    f.big ? 'display text-[clamp(2.5rem,5vw,4rem)] normal-case' : 'text-lg font-semibold leading-snug'
+                  }`}
+                >
+                  {f.value}
+                </dd>
+                <dd className={`text-sm leading-snug text-grey ${f.big ? 'mt-2' : ''}`}>{f.detail}</dd>
+              </>
+            )
+            return reduce ? (
+              <div key={f.label} className={i ? 'mt-7' : ''}>
+                {body}
               </div>
-
-              <h4
-                className="font-semibold text-base text-white mb-2 leading-snug"
-                style={{ fontFamily: 'Syne, sans-serif' }}
+            ) : (
+              <motion.div
+                key={f.label}
+                className={i ? 'mt-7' : ''}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+                transition={{ duration: 0.8, delay: 0.15 + i * 0.08, ease: EASE_QUART }}
               >
-                {s.title}
-              </h4>
-              <p className="text-gray-500 text-xs leading-relaxed mb-4">{s.desc}</p>
+                {body}
+              </motion.div>
+            )
+          })}
+        </dl>
 
-              <div className="flex flex-wrap gap-1">
-                {s.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="text-xs px-2 py-0.5 rounded-full font-mono"
-                    style={{
-                      background: `${s.color}10`,
-                      color: s.color,
-                      border: `1px solid ${s.color}20`,
-                    }}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-
-              {/* Hover bottom accent */}
-              <div
-                className="absolute bottom-0 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: `linear-gradient(90deg, transparent, ${s.color}, transparent)` }}
-              />
-            </motion.div>
-          ))}
+        {/* Practice areas as a ruled index, not cards */}
+        <div className="col-span-4 lg:col-span-11 lg:col-start-2">
+          <h3 className="label text-paper">Practice</h3>
+          <ul className="mt-4">
+            {practice.map((p, i) => (
+              <PracticeRow key={p.title} p={p} i={i} />
+            ))}
+          </ul>
+          <Rule />
         </div>
       </div>
     </section>

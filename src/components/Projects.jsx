@@ -1,49 +1,18 @@
-import { useRef, useState, useCallback } from 'react'
-import { motion, useInView } from 'framer-motion'
-import { FaArrowLeft, FaArrowRight, FaGithub, FaExternalLinkAlt } from 'react-icons/fa'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useMotionValue, useSpring } from 'framer-motion'
+import { Reveal, Rule, SectionHead } from './ui'
+import { EASE_QUART, Magnetic, ProjectCover, useLenis, useReducedMotionPref } from './fx'
 
+// Newton-AI and Polluxa SalesTech live in Experience (02); not repeated here.
+// `cover` picks the generative cover pattern (abstract art, not a screenshot).
 const projects = [
-  {
-    title: 'Newton-AI — LinkedIn SDR Automation',
-    category: 'AI Automation · Work',
-    period: '2026 — Present',
-    color: '#F59E0B',
-    accentRgb: '245,158,11',
-    icon: '💬',
-    summary: 'FastAPI/Celery-based AI system that engages LinkedIn leads in automated SDR conversations, qualifies prospects and hands warm leads to sales — integrated with the Polluxa SalesTech platform.',
-    bullets: [
-      'Interest detection, intent classification and lead qualification',
-      'Lifecycle states: interested, not interested, job seeker, ghosted, handed-off',
-      'Human handoff workflows for leads needing sales intervention',
-      'Reliable async FastAPI + Celery processing and inbound webhooks',
-    ],
-    tech: ['Python', 'FastAPI', 'Celery', 'Redis', 'Conversational AI', 'Webhooks'],
-    link: 'https://grateful-joy-0dad9947f5.media.strapiapp.com/AI_Powered_Linked_In_Outreach_Automation_1271cf68cd.mp4',
-  },
-  {
-    title: 'Polluxa SalesTech — Production SaaS',
-    category: 'Backend · Work',
-    period: '2026 — Present',
-    color: '#EC4899',
-    accentRgb: '236,72,153',
-    icon: '📬',
-    summary: 'Backend APIs and business logic for a production sales-outreach SaaS — email, outreach, leads, pipeline, senders, inbox, warm-up and deliverability — built on Django REST Framework.',
-    bullets: [
-      'Celery + Redis async workflows for automated email operations',
-      'Email warm-up and deliverability analysis (before/after comparison)',
-      'Debugged production flows across API → DB → Celery → Redis → SMTP/IMAP',
-      'PostgreSQL data modelling and investigation',
-    ],
-    tech: ['Python', 'Django', 'DRF', 'PostgreSQL', 'Celery', 'Redis', 'Docker'],
-  },
   {
     title: 'AI Lead Generation & Enrichment',
     category: 'AI Automation',
     period: '2026',
-    color: '#22C55E',
-    accentRgb: '34,197,94',
-    icon: '🎯',
-    summary: 'Automated B2B lead discovery pipeline: finds target companies and decision-makers by industry, geography, size and title, then enriches and verifies contacts at scale.',
+    cover: 0,
+    summary:
+      'Automated B2B lead discovery pipeline: finds target companies and decision-makers by industry, geography, size and title, then enriches and verifies contacts at scale.',
     bullets: [
       'Company research and decision-maker enrichment',
       'Large-scale dataset processing with company/person relationships',
@@ -57,10 +26,9 @@ const projects = [
     title: 'AI-Powered Fake Review Detection',
     category: 'AI / ML',
     period: 'Jun 2026',
-    color: '#4F46E5',
-    accentRgb: '79,70,229',
-    icon: '🤖',
-    summary: 'NLP + ML platform that authenticates product reviews in real-time using TF-IDF vectorization and Logistic Regression — deployed on cloud for public access.',
+    cover: 1,
+    summary:
+      'NLP + ML platform that authenticates product reviews in real-time using TF-IDF vectorization and Logistic Regression — deployed on cloud for public access.',
     bullets: [
       'High-accuracy classification via TF-IDF + Logistic Regression',
       'Real-time REST API built with Flask',
@@ -73,10 +41,9 @@ const projects = [
     title: 'Real-Time Visitor Analytics',
     category: 'AWS Serverless',
     period: 'Feb 2026',
-    color: '#06B6D4',
-    accentRgb: '6,182,212',
-    icon: '☁️',
-    summary: 'Fully serverless analytics pipeline on AWS — Lambda, DynamoDB, API Gateway — with IAM least-privilege controls and CloudWatch monitoring. Zero dedicated servers.',
+    cover: 2,
+    summary:
+      'Fully serverless analytics pipeline on AWS — Lambda, DynamoDB, API Gateway — with IAM least-privilege controls and CloudWatch monitoring. Zero dedicated servers.',
     bullets: [
       'Event-driven Lambda processing with DynamoDB storage',
       'REST APIs for visitor event ingestion',
@@ -89,10 +56,9 @@ const projects = [
     title: 'NewsXStudy — Full-Stack Platform',
     category: 'Full Stack',
     period: 'Nov 2025',
-    color: '#8B5CF6',
-    accentRgb: '139,92,246',
-    icon: '📰',
-    summary: 'Full-stack news aggregation and student productivity tool. React frontend, Node/Express backend, MongoDB data layer, real-time News API feeds, and a built-in study timer.',
+    cover: 3,
+    summary:
+      'Full-stack news aggregation and student productivity tool. React frontend, Node/Express backend, MongoDB data layer, real-time News API feeds, and a built-in study timer.',
     bullets: [
       'JWT auth, news bookmarking, category filters',
       'Live News API integration via async React Hooks',
@@ -105,10 +71,9 @@ const projects = [
     title: 'Smart Employee Management',
     category: 'Backend · Java',
     period: 'Apr 2026',
-    color: '#10B981',
-    accentRgb: '16,185,129',
-    icon: '👥',
-    summary: 'Java-based CRUD system for employee records management. JDBC + MySQL backend with OOP architecture and query-optimized data retrieval for performance at scale.',
+    cover: 4,
+    summary:
+      'Java-based CRUD system for employee records management. JDBC + MySQL backend with OOP architecture and query-optimized data retrieval for performance at scale.',
     bullets: [
       'Full CRUD via JDBC + MySQL',
       'OOP-driven modular architecture',
@@ -119,281 +84,392 @@ const projects = [
   },
 ].map((p, i) => ({ ...p, num: String(i + 1).padStart(2, '0') }))
 
-const CardInner = ({ project, isActive, mousePos, onMouseMove, onMouseLeave }) => {
-  const shine = isActive
-    ? {
-        background: `radial-gradient(circle at ${mousePos.x * 100}% ${mousePos.y * 100}%, rgba(255,255,255,0.07) 0%, transparent 55%)`,
-      }
-    : {}
+const COUNT = String(projects.length).padStart(2, '0')
 
+function useMediaQuery(query) {
+  const get = () => typeof window !== 'undefined' && window.matchMedia(query).matches
+  const [matches, setMatches] = useState(get)
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const onChange = () => setMatches(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [query])
+  return matches
+}
+
+/* ---------- shared pieces ---------- */
+function ProjectLinks({ project }) {
+  if (!project.github && !project.link) return null
   return (
-    <div
-      className="rounded-[20px] p-6 lg:p-8 h-full flex flex-col"
-      style={{ background: '#0C0C1A', minHeight: '420px' }}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
-    >
-      {/* Shine overlay */}
-      <div className="absolute inset-0 rounded-[20px] pointer-events-none transition-all duration-200" style={shine} />
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+      {project.github ? (
+        <Magnetic strength={0.3}>
+          <a
+            href={project.github}
+            target="_blank"
+            rel="noreferrer"
+            data-cursor="view"
+            data-cursor-label="Code"
+            className="group/btn relative inline-flex items-center gap-3 overflow-hidden border border-paper px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-paper [font-stretch:112%]"
+          >
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 block origin-bottom scale-y-0 bg-signal transition-transform duration-500 ease-quart group-hover/btn:scale-y-100 group-focus-visible/btn:scale-y-100"
+            />
+            <span className="relative transition-colors duration-300 group-hover/btn:text-ink">Source on GitHub ↗</span>
+          </a>
+        </Magnetic>
+      ) : null}
+      {project.link ? (
+        <a
+          href={project.link}
+          target="_blank"
+          rel="noreferrer"
+          data-cursor="view"
+          data-cursor-label="Open"
+          className="font-semibold text-paper underline decoration-rule underline-offset-[6px] transition-[text-decoration-color] duration-300 hover:decoration-paper"
+        >
+          Demo ↗
+        </a>
+      ) : null}
+    </div>
+  )
+}
 
-      {/* Header row */}
-      <div className="flex items-start justify-between mb-5 relative z-10">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{project.icon}</span>
-          <div>
-            <span className="label" style={{ color: project.color }}>{project.category}</span>
-            <div className="label-muted mt-0.5">{project.num} · {project.period}</div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {project.github && (
-            <a
-              href={project.github}
-              target="_blank"
-              rel="noreferrer"
-              title="Source code"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all duration-200 glass-sm"
-              style={{ color: '#475569' }}
-              onClick={e => e.stopPropagation()}
-              onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#475569' }}
-            >
-              <FaGithub />
-            </a>
-          )}
-          {project.link && (
-            <a
-              href={project.link}
-              target="_blank"
-              rel="noreferrer"
-              title="Demo"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs transition-all duration-200"
-              style={{ background: `${project.color}18`, border: `1px solid ${project.color}30`, color: project.color }}
-              onClick={e => e.stopPropagation()}
-            >
-              <FaExternalLinkAlt />
-            </a>
-          )}
-        </div>
-      </div>
-
-      {/* Title */}
-      <h3
-        className="text-white font-semibold mb-3 leading-snug relative z-10"
-        style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.2rem' }}
-      >
-        {project.title}
-      </h3>
-
-      {/* Summary */}
-      <p className="text-sm leading-relaxed mb-5 relative z-10" style={{ color: '#64748B', fontSize: '0.82rem' }}>
-        {project.summary}
-      </p>
-
-      {/* Bullets */}
-      <ul className="space-y-1.5 mb-6 flex-1 relative z-10">
+function StackRows({ project }) {
+  return (
+    <>
+      <ol>
         {project.bullets.map((b, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#475569' }}>
-            <span className="mt-0.5 shrink-0" style={{ color: project.color, opacity: 0.7 }}>▸</span>
-            <span>{b}</span>
+          <li key={b} className="grid grid-cols-[2.25rem_1fr] border-t border-rule py-2.5 xl:py-3">
+            <span className="label num pt-[3px]">{String(i + 1).padStart(2, '0')}</span>
+            <span className="text-paper/90">{b}</span>
           </li>
         ))}
-      </ul>
-
-      {/* Tech stack */}
-      <div className="flex flex-wrap gap-1.5 relative z-10">
-        {project.tech.map((t) => (
-          <span
-            key={t}
-            className="text-xs px-2 py-0.5 rounded font-mono"
-            style={{
-              background: `rgba(${project.accentRgb},0.08)`,
-              color: project.color,
-              border: `1px solid rgba(${project.accentRgb},0.18)`,
-            }}
-          >
-            {t}
-          </span>
-        ))}
+      </ol>
+      <div className="grid grid-cols-[2.25rem_1fr] border-t border-rule pt-3">
+        <span aria-hidden="true" />
+        <p className="text-sm text-grey">
+          <span className="label mr-3 text-paper">Built with</span>
+          {project.tech.join(' · ')}
+        </p>
       </div>
+    </>
+  )
+}
 
-      {/* Bottom accent line */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px rounded-b-[20px]"
-        style={{ background: `linear-gradient(90deg, transparent, ${project.color}66, transparent)` }}
-      />
+/* ---------- Desktop: index with a cursor-following generative cover ---------- */
+const PREVIEW_W = 440
+const PREVIEW_H = 300
+
+function FloatingCover({ activeIndex }) {
+  const show = activeIndex !== null
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const sx = useSpring(x, { stiffness: 160, damping: 22, mass: 0.6 })
+  const sy = useSpring(y, { stiffness: 160, damping: 22, mass: 0.6 })
+  const skew = useMotionValue(0)
+  const sSkew = useSpring(skew, { stiffness: 200, damping: 20 })
+  const vel = useRef({ x: 0, y: 0 })
+  const lastKind = useRef(0)
+  if (show) lastKind.current = projects[activeIndex].cover
+
+  useEffect(() => {
+    let px = 0
+    let py = 0
+    const onMove = (e) => {
+      x.set(e.clientX - PREVIEW_W / 2)
+      y.set(e.clientY - PREVIEW_H / 2)
+      const vx = e.clientX - px
+      const vy = e.clientY - py
+      px = e.clientX
+      py = e.clientY
+      vel.current = { x: Math.max(-40, Math.min(40, vx)), y: Math.max(-40, Math.min(40, -vy)) }
+      skew.set(Math.max(-12, Math.min(12, vx * 0.35)))
+    }
+    let raf = 0
+    const decay = () => {
+      raf = requestAnimationFrame(decay)
+      vel.current = { x: vel.current.x * 0.9, y: vel.current.y * 0.9 }
+      skew.set(skew.get() * 0.9)
+    }
+    decay()
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('pointermove', onMove)
+    }
+  }, [x, y, skew])
+
+  return (
+    <motion.div
+      aria-hidden="true"
+      className="pointer-events-none fixed left-0 top-0 z-30"
+      style={{ x: sx, y: sy, skewX: sSkew, width: PREVIEW_W, height: PREVIEW_H }}
+      initial={false}
+      animate={{
+        opacity: show ? 1 : 0,
+        scale: show ? 1 : 0.6,
+        clipPath: show ? 'inset(0% 0% 0% 0%)' : 'inset(50% 50% 50% 50%)',
+      }}
+      transition={{ duration: 0.5, ease: EASE_QUART }}
+    >
+      <ProjectCover kind={lastKind.current} velocity={vel} className="h-full w-full" />
+      <span className="label absolute bottom-2 left-3 text-paper/70">Generative cover</span>
+    </motion.div>
+  )
+}
+
+function IndexRow({ project, index, active, dimmed, onEnter, onOpen }) {
+  return (
+    <li className="relative">
+      <button
+        type="button"
+        onPointerEnter={() => onEnter(index)}
+        onFocus={() => onEnter(index)}
+        onClick={(e) => onOpen(index, e.currentTarget)}
+        aria-haspopup="dialog"
+        data-cursor="view"
+        data-cursor-label="Open"
+        className="group grid w-full grid-cols-12 items-baseline gap-x-[var(--gap)] border-t border-rule py-7 text-left transition-opacity duration-500 ease-quart xl:py-9"
+        style={{ opacity: dimmed ? 0.28 : 1 }}
+      >
+        <span className={`label num col-span-1 transition-colors duration-300 ${active ? 'text-signal' : ''}`}>
+          {project.num}
+        </span>
+        <motion.span
+          layoutId={`title-${project.num}`}
+          className="col-span-8 block text-[clamp(2rem,4.6vw,4.75rem)] font-black uppercase leading-[0.9] tracking-[-0.015em] [font-stretch:125%]"
+          animate={{ x: active ? 28 : 0 }}
+          transition={{ duration: 0.6, ease: EASE_QUART }}
+        >
+          {project.title}
+        </motion.span>
+        <span className="label col-span-3 text-right">
+          {project.category}
+          <br />
+          <span className="num text-paper">{project.period}</span>
+        </span>
+        {/* signal underline sweeps in on hover */}
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 block h-px w-full origin-left scale-x-0 bg-signal transition-transform duration-700 ease-quart group-hover:scale-x-100 group-focus-visible:scale-x-100"
+        />
+      </button>
+    </li>
+  )
+}
+
+function ProjectDetail({ project, onClose }) {
+  const closeRef = useRef(null)
+  const lenis = useLenis()
+
+  useEffect(() => {
+    lenis?.stop()
+    document.documentElement.style.overflow = 'hidden'
+    closeRef.current?.focus()
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.documentElement.style.overflow = ''
+      lenis?.start()
+    }
+  }, [lenis, onClose])
+
+  return (
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`detail-${project.num}`}
+      className="fixed inset-0 z-[60] overflow-y-auto bg-ink"
+      data-lenis-prevent
+      initial={{ clipPath: 'inset(100% 0 0 0)' }}
+      animate={{ clipPath: 'inset(0% 0 0 0)' }}
+      exit={{ clipPath: 'inset(0 0 100% 0)' }}
+      transition={{ duration: 0.8, ease: EASE_QUART }}
+    >
+      <div className="shell flex min-h-full flex-col py-8">
+        <div className="flex items-center justify-between">
+          <p className="label num">
+            Project <span className="text-signal">{project.num}</span> / {COUNT}
+          </p>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            data-cursor="view"
+            data-cursor-label="Close"
+            className="label border border-paper px-4 py-2 text-paper transition-colors duration-300 hover:bg-paper hover:text-ink"
+          >
+            Close · Esc
+          </button>
+        </div>
+
+        <div className="grid-12 mt-10 flex-1 gap-y-10">
+          <div className="col-span-4 lg:col-span-7">
+            <motion.h3
+              id={`detail-${project.num}`}
+              layoutId={`title-${project.num}`}
+              className="text-[clamp(2.25rem,6vw,6.5rem)] font-black uppercase leading-[0.88] tracking-[-0.015em] [font-stretch:125%]"
+            >
+              {project.title}
+            </motion.h3>
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.35, ease: EASE_QUART }}
+            >
+              <p className="label mt-6">
+                {project.category} · <span className="num text-paper">{project.period}</span>
+              </p>
+              <p className="mt-8 max-w-[56ch] text-lg text-paper/90">{project.summary}</p>
+              <div className="mt-8">
+                <ProjectLinks project={project} />
+              </div>
+            </motion.div>
+          </div>
+          <motion.div
+            className="col-span-4 lg:col-span-5"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.25, ease: EASE_QUART }}
+          >
+            <div className="relative aspect-[4/3] w-full border border-rule">
+              <ProjectCover kind={project.cover} className="h-full w-full" />
+              <span className="label absolute bottom-2 left-3 text-paper/70">Generative cover</span>
+            </div>
+            <div className="mt-8 text-[0.9375rem]">
+              <StackRows project={project} />
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function ProjectIndex() {
+  const [hovered, setHovered] = useState(null)
+  const [open, setOpen] = useState(null)
+  const returnFocus = useRef(null)
+
+  const onOpen = useCallback((i, el) => {
+    returnFocus.current = el
+    setOpen(i)
+  }, [])
+  const onClose = useCallback(() => {
+    setOpen(null)
+    requestAnimationFrame(() => returnFocus.current?.focus())
+  }, [])
+
+  return (
+    <div className="shell">
+      <div className="grid-12 mt-10 items-end gap-y-4">
+        <p className="label col-span-6 text-paper">
+          Selected projects · <span className="num">Nov 2025 – 2026</span>
+        </p>
+        <p className="label col-span-6 text-right">Hover to preview · click to open</p>
+      </div>
+      <ol className="mt-8" onPointerLeave={() => setHovered(null)}>
+        {projects.map((p, i) => (
+          <IndexRow
+            key={p.num}
+            project={p}
+            index={i}
+            active={hovered === i}
+            dimmed={hovered !== null && hovered !== i}
+            onEnter={setHovered}
+            onOpen={onOpen}
+          />
+        ))}
+      </ol>
+      <Rule />
+      <FloatingCover activeIndex={open === null ? hovered : null} />
+      <AnimatePresence>{open !== null ? <ProjectDetail key={open} project={projects[open]} onClose={onClose} /> : null}</AnimatePresence>
+    </div>
+  )
+}
+
+/* ---------- Mobile / reduced motion: vertical list ---------- */
+function StackedPanel({ project }) {
+  return (
+    <li className="relative border-t border-rule py-10">
+      <div className="flex items-start justify-between gap-4">
+        <Reveal as="span" duration={0.7} className="display num block text-[clamp(5rem,26vw,9rem)] leading-[0.82]">
+          <span aria-hidden="true">{project.num}</span>
+        </Reveal>
+        <p className="label pt-1 text-right">
+          {project.category}
+          <br />
+          <span className="num text-paper">{project.period}</span>
+        </p>
+      </div>
+      <Reveal
+        as="h3"
+        className="mt-6 text-[clamp(1.75rem,8vw,3.25rem)] font-black uppercase leading-[0.92] tracking-[-0.01em] [font-stretch:115%]"
+      >
+        <span className="sr-only">Project {project.num}: </span>
+        {project.title}
+      </Reveal>
+      <div className="mt-5 grid gap-y-6 md:grid-cols-2 md:gap-x-8">
+        <div>
+          <p className="max-w-[60ch] text-paper/90">{project.summary}</p>
+          <div className="mt-6">
+            <ProjectLinks project={project} />
+          </div>
+        </div>
+        <div>
+          <StackRows project={project} />
+        </div>
+      </div>
+    </li>
+  )
+}
+
+function StackedList() {
+  return (
+    <div className="shell">
+      <div className="grid-12 mt-10 items-end gap-y-4">
+        <Reveal as="p" duration={0.7} className="display num col-span-4 text-[clamp(9rem,40vw,18rem)] leading-[0.86]">
+          <span aria-hidden="true">{COUNT}</span>
+          <span className="sr-only">{projects.length} projects</span>
+        </Reveal>
+        <div className="col-span-4 pb-2">
+          <p className="label text-paper">
+            Selected projects · <span className="num">Nov 2025 – 2026</span>
+          </p>
+          <p className="mt-3 max-w-[48ch] text-grey">
+            AI automation, ML, serverless, full-stack and Java backend builds, each traced from outcome to the stack it
+            was built with.
+          </p>
+        </div>
+      </div>
+      <ol className="mt-12">
+        {projects.map((p) => (
+          <StackedPanel key={p.num} project={p} />
+        ))}
+      </ol>
+      <Rule />
     </div>
   )
 }
 
 const Projects = () => {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
-  const [active, setActive] = useState(0)
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 })
-
-  const total = projects.length
-
-  const normalizeOffset = (i) => {
-    let o = i - active
-    if (o > total / 2) o -= total
-    if (o < -total / 2) o += total
-    return o
-  }
-
-  const go = useCallback((dir) => {
-    setActive((a) => (a + dir + total) % total)
-  }, [total])
-
-  const getStyle = (offset) => {
-    const abs = Math.abs(offset)
-    if (abs > 1.5) return { opacity: 0, pointerEvents: 'none', zIndex: 0 }
-    return {
-      transform: `translateX(${offset * 72}%) scale(${1 - abs * 0.14}) rotateY(${-offset * 20}deg)`,
-      opacity: abs === 0 ? 1 : 0.35,
-      zIndex: abs === 0 ? 10 : 2,
-      filter: abs === 0 ? 'none' : 'blur(1.5px)',
-      pointerEvents: abs === 0 ? 'auto' : 'none',
-    }
-  }
-
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    setMousePos({
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
-    })
-  }
+  const reduce = useReducedMotionPref()
+  const isDesktop = useMediaQuery('(min-width: 1024px) and (pointer: fine)')
+  const index = isDesktop && !reduce
 
   return (
-    <section id="projects" className="relative py-28 overflow-hidden">
-      <span className="ghost-num" style={{ top: '-10px', left: '-10px' }}>03</span>
-
-      <div className="max-w-7xl mx-auto px-6 lg:px-20" ref={ref}>
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7 }}
-          className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14"
-        >
-          <div>
-            <p className="label mb-3" style={{ color: '#4F46E5' }}>Selected Work</p>
-            <h2 className="heading-syne text-white">
-              What I've <span className="grad-indigo">shipped</span>
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => go(-1)}
-              className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 glass-sm hover:-translate-x-0.5"
-              style={{ color: '#475569' }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0'; e.currentTarget.style.borderColor = 'rgba(79,70,229,0.4)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '' }}
-            >
-              <FaArrowLeft className="text-xs" />
-            </button>
-            <div className="flex gap-1.5">
-              {projects.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActive(i)}
-                  className="rounded-full transition-all duration-400"
-                  style={{
-                    width: i === active ? '20px' : '6px',
-                    height: '6px',
-                    background: i === active ? '#4F46E5' : 'rgba(255,255,255,0.15)',
-                  }}
-                />
-              ))}
-            </div>
-            <button
-              onClick={() => go(1)}
-              className="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300 glass-sm hover:translate-x-0.5"
-              style={{ color: '#475569' }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#E2E8F0'; e.currentTarget.style.borderColor = 'rgba(79,70,229,0.4)' }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#475569'; e.currentTarget.style.borderColor = '' }}
-            >
-              <FaArrowRight className="text-xs" />
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Carousel */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: 0.15 }}
-        >
-          <div className="carousel-scene">
-            <div className="carousel-track" style={{ perspective: '1400px' }}>
-              {projects.map((project, i) => {
-                const offset = normalizeOffset(i)
-                const isActive = offset === 0
-                const style = getStyle(offset)
-
-                return (
-                  <div
-                    key={project.num}
-                    className="carousel-card"
-                    style={style}
-                    onClick={() => !isActive && setActive(i)}
-                  >
-                    {/* Holographic ring on active card */}
-                    {isActive ? (
-                      <div className="holo-ring relative">
-                        <CardInner
-                          project={project}
-                          isActive
-                          mousePos={mousePos}
-                          onMouseMove={handleMouseMove}
-                          onMouseLeave={() => setMousePos({ x: 0.5, y: 0.5 })}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className="relative rounded-[20px]"
-                        style={{ border: '1px solid rgba(255,255,255,0.05)' }}
-                      >
-                        <CardInner
-                          project={project}
-                          isActive={false}
-                          mousePos={{ x: 0.5, y: 0.5 }}
-                          onMouseMove={() => {}}
-                          onMouseLeave={() => {}}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Project title ticker below carousel */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={inView ? { opacity: 1 } : {}}
-          transition={{ delay: 0.4 }}
-          className="flex justify-center gap-2 mt-10 flex-wrap"
-        >
-          {projects.map((p, i) => (
-            <button
-              key={p.num}
-              onClick={() => setActive(i)}
-              className="px-4 py-2 rounded-lg text-xs font-mono transition-all duration-300"
-              style={{
-                background: i === active ? `rgba(${p.accentRgb},0.12)` : 'rgba(255,255,255,0.02)',
-                border: `1px solid ${i === active ? `rgba(${p.accentRgb},0.3)` : 'rgba(255,255,255,0.06)'}`,
-                color: i === active ? p.color : '#475569',
-              }}
-            >
-              {p.num} {p.title.split(' ').slice(0, 3).join(' ')}…
-            </button>
-          ))}
-        </motion.div>
+    <section id="projects" className="py-24 lg:py-32">
+      <div className="shell">
+        <SectionHead index="03" title="Projects" />
       </div>
+      {index ? <ProjectIndex /> : <StackedList />}
     </section>
   )
 }

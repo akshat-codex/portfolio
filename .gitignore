@@ -31,3 +31,14 @@ screenshot2.cjs
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Local design skills
+.claude/skills/
+.claude/agents/
+.claude/settings.json
+
+# Impeccable runtime files (keep surfaces/ and PRODUCT.md)
+.impeccable/review/
+.impeccable/review*.png
+.impeccable/questions/
+.impeccable/hook.cache.json

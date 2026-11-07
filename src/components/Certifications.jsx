@@ -1,134 +1,94 @@
-import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
+import { Reveal, Rule, SectionHead } from './ui'
+import { EASE_QUART } from './fx'
 
 const certs = [
   {
-    icon: '☁️',
     title: 'AWS Cloud Computing Training',
     issuer: 'Amazon Web Services',
     status: 'Completed',
-    color: '#FF9900',
     skills: ['EC2', 'S3', 'Lambda', 'DynamoDB', 'VPC', 'IAM'],
     desc: 'Hands-on practical training covering AWS core services, cloud architecture, and deployment.',
   },
   {
-    icon: '🏗️',
     title: 'AWS Solutions Architect – Associate',
     issuer: 'Amazon Web Services',
-    status: 'In Progress',
-    color: '#7B2FFF',
+    status: 'In preparation',
+    live: true,
     skills: ['Architecture', 'Auto Scaling', 'ELB', 'CloudWatch'],
-    desc: 'Designing fault-tolerant distributed systems and scalable cloud architectures on AWS.',
+    desc: 'Preparing for the exam: fault-tolerant distributed systems and scalable cloud architectures on AWS.',
   },
   {
-    icon: '☕',
     title: 'Full Stack Java Development',
     issuer: 'Industry Training',
     status: 'Completed',
-    color: '#00D4FF',
     skills: ['Java', 'JDBC', 'MySQL', 'OOP', 'REST APIs'],
     desc: 'Comprehensive full-stack training in Java, JDBC, MySQL, and RESTful API development.',
   },
 ]
 
-const tiltEnter = (e) => { e.currentTarget.style.transition = 'transform 0.12s ease' }
-const tiltMove = (e) => {
-  const el = e.currentTarget
-  const r = el.getBoundingClientRect()
-  const x = (e.clientX - r.left) / r.width - 0.5
-  const y = (e.clientY - r.top) / r.height - 0.5
-  el.style.transform = `perspective(800px) rotateX(${-y * 9}deg) rotateY(${x * 9}deg) translateZ(5px)`
-}
-const tiltLeave = (e) => {
-  e.currentTarget.style.transition = 'transform 0.55s ease'
-  e.currentTarget.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) translateZ(0px)'
-}
+const pad = (n) => String(n).padStart(2, '0')
 
 const Certifications = () => {
-  const ref = useRef(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
+  const reduce = useReducedMotion()
 
   return (
-    <section id="certifications" className="relative py-28 px-6 lg:px-16 overflow-hidden">
-      <span className="section-ghost-num" style={{ top: '-20px', left: '-10px' }}>05</span>
+    <section id="certifications" className="shell py-24 lg:py-32">
+      <SectionHead index="06" title="Certifications" />
 
-      <div className="max-w-7xl mx-auto" ref={ref}>
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7 }}
-          className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-16"
-        >
-          <div>
-            <p className="label-text mb-4">Credentials</p>
-            <h2 className="heading-text text-white">
-              Certifications &amp; <span className="gradient-text">Training</span>
-            </h2>
-          </div>
-        </motion.div>
-
-        <div className="grid md:grid-cols-3 gap-5">
-          {certs.map((cert, i) => (
+      <ol className="mt-12 lg:mt-20">
+        {certs.map((c, i) => (
+          <li key={c.title} className="group relative">
+            <Rule delay={i * 0.1} />
+            {/* Hover: a signal hairline sweeps along the row's top rule */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 h-px origin-left scale-x-0 bg-signal transition-transform duration-500 ease-quart group-hover:scale-x-100"
+            />
+            {/* Entrance: content slides in along the row axis behind the drawing rule */}
             <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 40 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-              className="glass glass-hover p-6 relative overflow-hidden group"
-              style={{ borderColor: `${cert.color}15` }}
-              onMouseEnter={tiltEnter}
-              onMouseMove={tiltMove}
-              onMouseLeave={tiltLeave}
+              initial={reduce ? false : { x: -56, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+              transition={{ duration: 0.9, delay: 0.15 + i * 0.1, ease: EASE_QUART }}
             >
-              <div
-                className="absolute top-0 right-0 w-40 h-40 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{
-                  background: `radial-gradient(circle at top right, ${cert.color}12, transparent 60%)`,
-                }}
-              />
-
-              <div className="flex items-start justify-between mb-5">
-                <span className="text-3xl">{cert.icon}</span>
+              <div className="grid-12 gap-y-3 py-7 transition-transform duration-500 ease-quart motion-safe:group-hover:translate-x-2 lg:py-10">
                 <span
-                  className={`label-text px-3 py-1 rounded-full border ${
-                    cert.status === 'In Progress'
-                      ? 'border-yellow-500/30 text-yellow-500 bg-yellow-500/08'
-                      : 'border-emerald-500/30 text-emerald-400 bg-emerald-500/08'
-                  }`}
-                  style={{
-                    background: cert.status === 'In Progress' ? 'rgba(234,179,8,0.08)' : 'rgba(52,211,153,0.08)',
-                  }}
+                  aria-hidden="true"
+                  className="display num col-span-1 text-[clamp(1.75rem,4vw,3.5rem)] text-grey transition-colors duration-300 ease-quart group-hover:text-signal"
                 >
-                  {cert.status === 'In Progress' ? '⟳ In Progress' : '✓ Done'}
+                  {pad(i + 1)}
                 </span>
-              </div>
-
-              <h3 className="font-semibold text-white text-sm mb-1 leading-snug" style={{ fontFamily: 'Syne, sans-serif' }}>
-                {cert.title}
-              </h3>
-              <p className="text-xs mb-4 font-mono" style={{ color: cert.color }}>{cert.issuer}</p>
-              <p className="text-gray-500 text-xs leading-relaxed mb-5">{cert.desc}</p>
-
-              <div className="flex flex-wrap gap-1.5">
-                {cert.skills.map((s) => (
-                  <span
-                    key={s}
-                    className="text-xs px-2 py-0.5 rounded-full font-mono"
-                    style={{ background: `${cert.color}10`, color: cert.color, border: `1px solid ${cert.color}20` }}
+                <p
+                  className={`label col-span-3 flex items-center justify-end gap-2 lg:order-last lg:col-span-2 lg:items-start lg:pt-2 ${
+                    c.live ? 'text-signal' : ''
+                  }`}
+                >
+                  {c.live ? (
+                    <span aria-hidden="true" className="block h-2 w-2 shrink-0 animate-pulse bg-signal lg:mt-[0.15rem]" />
+                  ) : null}
+                  {c.status}
+                </p>
+                <div className="col-span-4 lg:col-span-5">
+                  <Reveal
+                    as="h3"
+                    delay={0.2 + i * 0.1}
+                    className="text-[clamp(1.25rem,3vw,1.875rem)] font-extrabold uppercase leading-[1] [font-stretch:112%]"
                   >
-                    {s}
-                  </span>
-                ))}
+                    {c.title}
+                  </Reveal>
+                  <p className="mt-2 text-grey">{c.issuer}</p>
+                </div>
+                <div className="col-span-4 lg:col-span-4">
+                  <p className="max-w-[60ch] text-paper/90">{c.desc}</p>
+                  <p className="mt-3 text-sm text-grey">{c.skills.join(' · ')}</p>
+                </div>
               </div>
-
-              <div
-                className="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                style={{ background: `linear-gradient(90deg, transparent, ${cert.color}88, transparent)` }}
-              />
             </motion.div>
-          ))}
-        </div>
-      </div>
+          </li>
+        ))}
+      </ol>
+      <Rule delay={certs.length * 0.1} />
     </section>
   )
 }
