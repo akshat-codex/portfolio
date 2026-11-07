@@ -219,6 +219,8 @@ function Portrait({ show, progress, calm }) {
             alt="Portrait of Akshat Kumar Srivastava"
             width="1000"
             height="1000"
+            fetchpriority="high"
+            decoding="async"
             className="absolute inset-0 h-full w-full object-contain object-bottom"
           />
           {/* Gloss: a light band that sweeps across the figure only (masked by the cutout) */}

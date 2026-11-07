@@ -5,7 +5,6 @@ export { default as KineticName } from './KineticName'
 export { default as Magnetic } from './Magnetic'
 export { default as Cursor } from './Cursor'
 export { default as DataField } from './DataField'
-export { default as Scene3D } from './Scene3D'
 export { default as LightLayer } from './LightLayer'
-export { default as ProjectCover } from './ProjectCover'
+export { Scene3D, ProjectCover } from './lazy' // lazy: wrap in <Suspense>
 export { useCalm, useFinePointer, useReducedMotionPref, EASE_QUART, easeOutQuart } from './prefs'

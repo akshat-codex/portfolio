@@ -1,7 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useCalm, useReducedMotionPref, useFinePointer } from './prefs'
 import { useIntroDone } from './introState'
-import LiquidName, { liquidSupported } from './LiquidName'
+import { LiquidName } from './lazy'
+
+// Kept here (not in LiquidName) so checking support never downloads three.js.
+function liquidSupported() {
+  try {
+    const c = document.createElement('canvas')
+    const ctx = c.getContext('2d')
+    return !!ctx && 'fontStretch' in ctx && !!document.createElement('canvas').getContext('webgl')
+  } catch {
+    return false
+  }
+}
 
 /**
  * <KineticName lines={['AKSHAT KUMAR','SRIVASTAVA']} className="display ..." />
@@ -180,7 +191,11 @@ export default function KineticName({ lines = [], className = '' }) {
   let k = 0
   return (
     <h1 ref={h1Ref} aria-label={label} className={`relative ${className}`}>
-      {liquid ? <LiquidName h1Ref={h1Ref} getLetters={getLetters} onReady={setLiquidReady} /> : null}
+      {liquid ? (
+        <Suspense fallback={null}>
+          <LiquidName h1Ref={h1Ref} getLetters={getLetters} onReady={setLiquidReady} />
+        </Suspense>
+      ) : null}
       {lines.map((line, li) => (
         <span
           key={li}

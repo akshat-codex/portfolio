@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'framer-motion'
 import { Reveal, Rule, SectionHead } from './ui'
 import { EASE_QUART, Magnetic, ProjectCover, useLenis, useReducedMotionPref } from './fx'
@@ -216,7 +216,9 @@ function FloatingCover({ activeIndex }) {
       }}
       transition={{ duration: 0.5, ease: EASE_QUART }}
     >
-      <ProjectCover kind={lastKind.current} velocity={vel} className="h-full w-full" />
+      <Suspense fallback={<div className="h-full w-full bg-ink" />}>
+        <ProjectCover kind={lastKind.current} velocity={vel} className="h-full w-full" />
+      </Suspense>
       <span className="label absolute bottom-2 left-3 text-paper/70">Generative cover</span>
     </motion.div>
   )
@@ -340,7 +342,9 @@ function ProjectDetail({ project, onClose }) {
             transition={{ duration: 0.8, delay: 0.25, ease: EASE_QUART }}
           >
             <div className="relative aspect-[4/3] w-full border border-rule">
-              <ProjectCover kind={project.cover} className="h-full w-full" />
+              <Suspense fallback={<div className="h-full w-full bg-ink" />}>
+                <ProjectCover kind={project.cover} className="h-full w-full" />
+              </Suspense>
               <span className="label absolute bottom-2 left-3 text-paper/70">Generative cover</span>
             </div>
             <div className="mt-8 text-[0.9375rem]">
