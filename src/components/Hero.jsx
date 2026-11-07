@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import ParticlePortrait from './fx/ParticlePortrait'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { EASE_QUART } from './ui'
 import { KineticName, Magnetic, useIntroDone, useCalm, useReducedMotionPref } from './fx'
@@ -195,13 +196,16 @@ function Portrait({ show, progress, calm }) {
   // Parallax: figure rises a touch faster than the aura as the hero scrolls away (depth).
   const figY = useTransform(progress, [0, 1], ['0%', '-6%'])
   const auraY = useTransform(progress, [0, 1], ['0%', '8%'])
+  const [assembled, setAssembled] = useState(false)
+  const formed = still || assembled
+  const onFormed = useCallback(() => setAssembled(true), [])
   return (
     <figure className="relative mx-auto w-full">
       <motion.div
         className="relative aspect-square"
-        initial={reduce ? false : { opacity: 0, y: 40 }}
-        animate={show || reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-        transition={{ duration: 1.1, delay: 0.15, ease: EASE_QUART }}
+        initial={reduce ? false : { opacity: 0 }}
+        animate={show || reduce ? { opacity: 1 } : { opacity: 0 }}
+        transition={{ duration: 0.6, ease: EASE_QUART }}
       >
         {/* Aura: ember light + slow rotating rays, centred behind the head and shoulders */}
         <motion.div aria-hidden="true" className="pointer-events-none absolute inset-[-18%_-30%_10%_-30%]" style={still ? undefined : { y: auraY }}>
@@ -212,7 +216,7 @@ function Portrait({ show, progress, calm }) {
           />
         </motion.div>
 
-        {/* The figure itself: full colour, background removed, bottom fades into the page */}
+        {/* The figure itself: assembled from particles on first view, then the real image takes over */}
         <motion.div className="portrait-figure absolute inset-0" style={still ? undefined : { y: figY }}>
           <img
             src="/akshat-cutout.webp"
@@ -221,10 +225,19 @@ function Portrait({ show, progress, calm }) {
             height="1000"
             fetchpriority="high"
             decoding="async"
-            className="absolute inset-0 h-full w-full object-contain object-bottom"
+            className="absolute inset-0 h-full w-full object-contain object-bottom transition-opacity duration-700 ease-quart"
+            style={{ opacity: formed ? 1 : 0 }}
           />
-          {/* Gloss: a light band that sweeps across the figure only (masked by the cutout) */}
-          {!still ? <div aria-hidden="true" className="portrait-sheen absolute inset-0" /> : null}
+          {!still ? (
+            <div
+              className="pointer-events-none absolute inset-0 transition-opacity duration-700 ease-quart"
+              style={{ opacity: formed ? 0 : 1 }}
+            >
+              <ParticlePortrait src="/akshat-cutout.webp" play={show} onDone={onFormed} />
+            </div>
+          ) : null}
+          {/* Gloss: a light band that sweeps across the figure only, once it has formed */}
+          {!still && formed ? <div aria-hidden="true" className="portrait-sheen absolute inset-0" /> : null}
         </motion.div>
       </motion.div>
     </figure>

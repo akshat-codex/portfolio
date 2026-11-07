@@ -16,18 +16,12 @@ function liquidSupported() {
 
 /**
  * <KineticName lines={['AKSHAT KUMAR','SRIVASTAVA']} className="display ..." />
- * After the intro, each letter resolves from scrambled data glyphs in a
- * left-to-right sweep (~900ms). On fine pointers letters lean a few px toward
- * the cursor. The real text is the h1's aria-label; the letter spans are aria-hidden.
+ * After the intro, letters flip up in 3D from the centre of each line; then (fine pointer,
+ * WebGL) a liquid shader overlay takes over, otherwise letters lean toward the cursor.
+ * The real text is the h1's aria-label; the letter spans are aria-hidden.
  */
-const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789|'
-const SWEEP_MS = 600 // start of first → start of last letter
-const SCRAMBLE_MS = 300 // each letter cycles this long before resolving
-const SWAP_MS = 45
 const LEAN_PX = 6
 const LEAN_RADIUS = 420
-
-const rand = () => GLYPHS[(Math.random() * GLYPHS.length) | 0]
 
 export default function KineticName({ lines = [], className = '' }) {
   const reduce = useReducedMotionPref()
@@ -46,58 +40,52 @@ export default function KineticName({ lines = [], className = '' }) {
 
   const label = lines.join(' ')
 
-  // Scramble sweep, once, after the intro. Layout effect: no flash of the final text.
+  // 3D flip-in, once, after the intro: every letter swings up out of the floor, rippling out
+  // from the centre of each line, de-blurring as it lands. Web Animations API: compositor-only.
   useLayoutEffect(() => {
     if (reduce || !introDone || ranRef.current) return undefined
     ranRef.current = true
     const els = letters.current.filter(Boolean)
-    const n = els.length
-    if (!n) return undefined
-    // Lock each cell to its real width so glyph swaps never reflow the line.
-    const finals = els.map((el) => el.dataset.char)
-    els.forEach((el) => {
-      el.style.width = `${el.getBoundingClientRect().width}px`
-      el.style.opacity = '0.3'
-      el.textContent = rand()
-    })
-    const stagger = n > 1 ? SWEEP_MS / (n - 1) : 0
-    const lastSwap = new Array(n).fill(0)
-    const resolved = new Array(n).fill(false)
-    let left = n
-    let raf = 0
-    const start = performance.now()
-    const tick = (now) => {
-      const t = now - start
-      for (let i = 0; i < n; i += 1) {
-        if (resolved[i]) continue
-        const el = els[i]
-        if (t >= i * stagger + SCRAMBLE_MS) {
-          resolved[i] = true
-          left -= 1
-          el.textContent = finals[i]
-          el.style.opacity = ''
-          el.style.width = ''
-        } else if (t - lastSwap[i] >= SWAP_MS) {
-          lastSwap[i] = t
-          el.textContent = rand()
-          if (t >= i * stagger) el.style.opacity = '0.6'
-        }
-      }
-      if (left > 0) raf = requestAnimationFrame(tick)
-      else {
-        raf = 0
-        setSwept(true)
-      }
+    if (!els.length || typeof els[0].animate !== 'function') {
+      setSwept(true)
+      return undefined
     }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      if (raf) ranRef.current = false // interrupted (e.g. StrictMode remount): allow a rerun
-      cancelAnimationFrame(raf)
-      els.forEach((el, i) => {
-        el.textContent = finals[i]
-        el.style.opacity = ''
-        el.style.width = ''
+    // group letters by line to ripple from each line's centre
+    const lineOf = (el) => el.closest('[data-line]')
+    const byLine = new Map()
+    els.forEach((el) => {
+      const l = lineOf(el)
+      if (!byLine.has(l)) byLine.set(l, [])
+      byLine.get(l).push(el)
+    })
+    const anims = []
+    let lineIdx = 0
+    byLine.forEach((group) => {
+      const mid = (group.length - 1) / 2
+      group.forEach((el, i) => {
+        const delay = lineIdx * 140 + Math.abs(i - mid) * 55
+        anims.push(
+          el.animate(
+            [
+              // perspective() inside the transform so the 3D works on nested inline letters too
+              { transform: 'perspective(700px) translateY(55%) rotateX(-95deg) scale(0.9)', opacity: 0, filter: 'blur(10px)' },
+              { opacity: 1, offset: 0.45 },
+              { transform: 'perspective(700px) translateY(0) rotateX(0deg) scale(1)', opacity: 1, filter: 'blur(0px)' },
+            ],
+            { duration: 1100, delay, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'backwards' },
+          ),
+        )
       })
+      lineIdx += 1
+    })
+    let cancelled = false
+    Promise.all(anims.map((a) => a.finished))
+      .then(() => { if (!cancelled) setSwept(true) })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+      if (anims.some((a) => a.playState === 'running')) ranRef.current = false // StrictMode remount: allow a rerun
+      anims.forEach((a) => a.cancel())
     }
   }, [introDone, reduce])
 
@@ -200,6 +188,7 @@ export default function KineticName({ lines = [], className = '' }) {
         <span
           key={li}
           aria-hidden="true"
+          data-line
           className="block transition-opacity duration-500"
           style={liquid && liquidReady ? { opacity: 0 } : undefined}
         >

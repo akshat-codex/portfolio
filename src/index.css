@@ -90,12 +90,12 @@
   }
 
   /* Expanded black display caps */
+  /* Display voice: Unbounded, wide geometric techno. Archivo stays the text face. */
   .display {
-    font-stretch: 125%;
-    font-variation-settings: 'wdth' 125;
-    font-weight: 900;
-    line-height: 0.88;
-    letter-spacing: -0.02em;
+    font-family: 'Unbounded Variable', 'Unbounded', 'Archivo Variable', system-ui, sans-serif;
+    font-weight: 800;
+    line-height: 0.92;
+    letter-spacing: -0.035em;
     text-transform: uppercase;
   }
 
