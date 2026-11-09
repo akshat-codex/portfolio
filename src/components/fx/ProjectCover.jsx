@@ -214,9 +214,13 @@ export default function ProjectCover({ kind = 0, velocity, className = '', activ
     let raf = 0
     const s = state.current
     s.shown = kind
+    // Only draw while the cover is on screen (it stays mounted when you scroll past Projects).
+    let onScreen = true
+    const io = new IntersectionObserver(([e]) => { onScreen = e.isIntersecting }, { rootMargin: '100px' })
+    io.observe(wrap)
     const tick = () => {
       raf = requestAnimationFrame(tick)
-      if (document.hidden) return
+      if (document.hidden || !onScreen) return
       // start a dissolve whenever the requested kind changes
       if (s.target !== s.shown) {
         uniforms.uFrom.value = s.shown
@@ -236,6 +240,7 @@ export default function ProjectCover({ kind = 0, velocity, className = '', activ
     return () => {
       cancelAnimationFrame(raf)
       ro.disconnect()
+      io.disconnect()
       mat.dispose(); quad.geometry.dispose(); renderer.dispose()
       if (renderer.domElement.parentNode === wrap) wrap.removeChild(renderer.domElement)
     }

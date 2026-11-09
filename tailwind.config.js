@@ -1,6 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // Aceternity components style their dark look with `dark:`; the site is always dark.
+  darkMode: 'class',
   theme: {
     extend: {
       screens: {

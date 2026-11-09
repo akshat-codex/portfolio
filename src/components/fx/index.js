@@ -1,10 +1,5 @@
 export { default as SmoothScroll, useLenis, NAV_OFFSET } from './SmoothScroll'
 export { default as Intro } from './Intro'
 export { useIntroDone } from './introState'
-export { default as KineticName } from './KineticName'
-export { default as Magnetic } from './Magnetic'
-export { default as Cursor } from './Cursor'
-export { default as DataField } from './DataField'
-export { default as LightLayer } from './LightLayer'
-export { Scene3D, ProjectCover } from './lazy' // lazy: wrap in <Suspense>
+export { ProjectCover } from './lazy' // lazy: wrap in <Suspense>
 export { useCalm, useFinePointer, useReducedMotionPref, EASE_QUART, easeOutQuart } from './prefs'

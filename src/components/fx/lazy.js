@@ -1,7 +1,4 @@
 import { lazy } from 'react'
 
-// Everything that pulls in three.js is code-split, so the first screen paints
-// without downloading or parsing the 3D engine.
-export const Scene3D = lazy(() => import('./Scene3D'))
+// three.js effects are code-split, so the first screen paints without the 3D engine.
 export const ProjectCover = lazy(() => import('./ProjectCover'))
-export const LiquidName = lazy(() => import('./LiquidName'))
