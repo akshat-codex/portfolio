@@ -22,7 +22,10 @@ export default defineConfig({
           if (id.includes('/gsap/')) return 'gsap'
           if (id.includes('/swiper/')) return 'swiper'
           if (id.includes('framer-motion') || id.includes('/motion/') || id.includes('motion-dom') || id.includes('motion-utils')) return 'motion'
-          if (id.includes('/react') || id.includes('scheduler')) return 'react'
+          // Exact package match: a loose '/react' also caught react-icons, @number-flow/react,
+          // lenis/react… creating a react <-> vendor import cycle that ran vendor before React
+          // existed (blank page: "Cannot read properties of undefined (reading 'forwardRef')").
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react'
           return 'vendor'
         },
       },
